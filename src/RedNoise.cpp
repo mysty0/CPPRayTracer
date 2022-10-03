@@ -3,19 +3,45 @@
 #include <Utils.h>
 #include <fstream>
 #include <vector>
+#include <glm/glm.hpp>
+#include "glm/ext.hpp"
 
 #define WIDTH 320
 #define HEIGHT 240
 
+std::vector<float> interpolateSingleFloats(float from, float to, int resolution) {
+	std::vector<float> result(resolution);
+	float step = (to - from)/(resolution-1);
+	for(int i = 0; i < resolution; ++i) {
+		result[i] = from + step * i;
+	}
+	return result;
+}
+
+std::vector<glm::vec3> interpolateThreeElementValues(glm::vec3 from, glm::vec3 to, int resolution) {
+	std::vector<glm::vec3> result(resolution);
+	auto step = (to - from) / glm::vec3(resolution-1);
+	for(int i = 0; i < resolution; ++i) {
+		result[i] = from + step * glm::vec3(i);
+	}
+	return result;
+}
+
 void draw(DrawingWindow &window) {
 	window.clearPixels();
+	glm::vec3 topLeft(255, 0, 0);        // red 
+	glm::vec3 topRight(0, 0, 255);       // blue 
+	glm::vec3 bottomRight(0, 255, 0);    // green 
+	glm::vec3 bottomLeft(255, 255, 0);   // yellow
+
+	auto left = interpolateThreeElementValues(topLeft, bottomLeft, window.height);
+	auto right = interpolateThreeElementValues(topRight, bottomRight, window.height);
 	for (size_t y = 0; y < window.height; y++) {
+		auto row = interpolateThreeElementValues(left[y], right[y], window.width);
 		for (size_t x = 0; x < window.width; x++) {
-			float red = rand() % 256;
-			float green = 0.0;
-			float blue = 0.0;
-			uint32_t colour = (255 << 24) + (int(red) << 16) + (int(green) << 8) + int(blue);
-			window.setPixelColour(x, y, colour);
+			glm::vec3 col =  row[x];
+			uint32_t color = (255 << 24) + (int(col.r) << 16) + (int(col.g) << 8) + int(col.b);
+			window.setPixelColour(x, y, color);
 		}
 	}
 }
