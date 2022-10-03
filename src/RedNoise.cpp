@@ -41,7 +41,7 @@ void draw(DrawingWindow &window) {
 		for (size_t x = 0; x < window.width; x++) {
 			glm::vec3 col =  row[x];
 			uint32_t color = (255 << 24) + (int(col.r) << 16) + (int(col.g) << 8) + int(col.b);
-			window.setPixelColour(x, y, color);
+		    window.setPixelColour(x, y, color);
 		}
 	}
 }
