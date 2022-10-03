@@ -15,6 +15,7 @@ cmake_minimum_required(VERSION 3.12)
 project(RedNoise)
 
 set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_COMPILER "/usr/local/opt/llvm/bin/clang++")
 
 # Note, we do this for glm because it's a header only library and because we shipped it with the project
 # normally you would use find_package(<package_name>) for libraries with actual objects
@@ -62,7 +63,7 @@ else ()
 
     set(DEBUG_OPTIONS -O2 -fno-omit-frame-pointer -g)
     set(RELEASE_OPTIONS -O3 -march=native -mtune=native)
-    target_link_libraries(RedNoise PUBLIC $<$<CONFIG:Debug>:-Wl,-lasan>)
+    target_link_libraries(RedNoise PUBLIC $<$<CONFIG:Debug>:-Wl,-fsanitize=undefined,-fsanitize=address>)
 
 endif()
 

@@ -1,0 +1,8 @@
+make -f /Users/yaroslav/Documents/uni/RedNoise/Makefile --dry-run --keep-going --print-directory
+make: Entering directory `/Users/yaroslav/Documents/uni/RedNoise'
+clang++ -c -pipe -Wall -std=c++11  -ggdb -g3 -o build/RedNoise.o src/RedNoise.cpp -I/usr/local/include/SDL2 -D_THREAD_SAFE -I./libs/sdw/ -I./libs/glm-0.9.7.2/
+clang++  -ggdb -g3 -o build/RedNoise build/RedNoise.o  build/CanvasPoint.o  build/CanvasTriangle.o  build/Colour.o  build/DrawingWindow.o  build/ModelTriangle.o  build/RayTriangleIntersection.o  build/TextureMap.o  build/TexturePoint.o  build/Utils.o -L/usr/local/lib -lSDL2
+ 
+./build/RedNoise
+make: Leaving directory `/Users/yaroslav/Documents/uni/RedNoise'
+ 
