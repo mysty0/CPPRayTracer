@@ -75,25 +75,16 @@ void drawFilledTriangle(DrawingWindow &window, CanvasTriangle triangle, Colour c
         std::swap(triangle.vertices[1], triangle.vertices[2]);
     }
 
-    float xDiff = abs(triangle.v0().x - triangle.v2().x);
-    float yDiff = abs(triangle.v0().y - triangle.v2().y);
-    float step = xDiff / yDiff;
-    float xMid = fmin(triangle.v0().y, triangle.v2().y) + step * (xDiff/2);
+    std::cout << triangle.v0() << " " << triangle.v1() << " " << triangle.v2() << std::endl;
 
-    float bXDiff = abs(triangle.v0().x - triangle.v1().x);
-    float bYDiff = abs(triangle.v0().y - triangle.v1().y);
-    float bStep = bYDiff == 0 ? 0 : bXDiff / bYDiff;
-
-    std::cout << xMid << std::endl;
-    std::cout << "y" << triangle.v0().y << " " << triangle.v1().y << std::endl;
-    std::cout << "bdiff: " << bXDiff << " " << bYDiff << std::endl;
-    std::cout << "step: " << step << " " << bStep << std::endl;
-
-    for(int y = triangle.v0().y; y >= triangle.v1().y; y--) {
-        float from = y * step + triangle.v0().x;
-        float to = y * bStep + triangle.v0().x;
-        std::cout << from << " " << to << std::endl;
-        drawLine(window, CanvasPoint(from, y), CanvasPoint(to, y), color);
+    float xDiff = (triangle.v2().x - triangle.v0().x);
+    float yDiff = (triangle.v2().y - triangle.v0().y);
+    float step = yDiff == 0 ? 0 : xDiff / yDiff;
+    float xMid =  triangle.v0().x + step * (triangle.v1().y - triangle.v0().y);
+    float len = abs(xMid - triangle.v1().x);
+    for(float x = fmin(xMid, triangle.v1().x); x <= fmax(xMid, triangle.v1().x); x ++) {
+        drawLine(window, CanvasPoint(x, triangle.v1().y), triangle.v0(), color);
+        drawLine(window, CanvasPoint(x, triangle.v1().y), triangle.v2(), color);
     }
 }
 
@@ -128,6 +119,7 @@ void handleEvent(SDL_Event event, DrawingWindow &window) {
         else if (event.key.keysym.sym == SDLK_UP) std::cout << "UP" << std::endl;
         else if (event.key.keysym.sym == SDLK_DOWN) std::cout << "DOWN" << std::endl;
         else if (event.key.keysym.sym == SDLK_u) drawTriangle(window, CanvasTriangle(randomPoint(window), randomPoint(window), randomPoint(window)), randomColor());
+        else if (event.key.keysym.sym == SDLK_f) drawFilledTriangle(window, CanvasTriangle(randomPoint(window), randomPoint(window), randomPoint(window)), randomColor());
     } else if (event.type == SDL_MOUSEBUTTONDOWN) {
         window.savePPM("output.ppm");
         window.saveBMP("output.bmp");
@@ -136,7 +128,8 @@ void handleEvent(SDL_Event event, DrawingWindow &window) {
 
 int main(int argc, char *argv[]) {
     DrawingWindow window = DrawingWindow(WIDTH, HEIGHT, false);
-    drawFilledTriangle(window, CanvasTriangle(CanvasPoint(50, 0), CanvasPoint(25, 100), CanvasPoint(100, 100)), Colour(255, 0, 0));
+    drawFilledTriangle(window, CanvasTriangle(CanvasPoint(200, 0), CanvasPoint(100, 25), CanvasPoint(50, 50)), Colour(255, 255, 0));
+    //drawFilledTriangle(window, CanvasTriangle(CanvasPoint(0, 0), CanvasPoint(100, 0), CanvasPoint(50, 50)), Colour(255, 0, 0));
     SDL_Event event;
     while (true) {
         // We MUST poll for events - otherwise the window will freeze !
