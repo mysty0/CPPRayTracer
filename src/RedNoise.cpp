@@ -130,7 +130,8 @@ void drawTextureTriangle(DrawingWindow &window, CanvasTriangle triangle, Texture
     auto adiff = triangle.v1() - triangle.v0();
     float aStep = adiff.y == 0 ? 0 : adiff.x / adiff.y;
 
-    for(float y = 0; y <= triangle.v0().y - triangle.v1().y; y++) {
+    cout << "start draw first triangle" << endl;
+    for(float y = 0; y < triangle.v0().y - triangle.v1().y; y++) {
         float ny = triangle.v1().y + y;
         float from = xMid + step * y;
         float to = triangle.v1().x + aStep * y;
@@ -145,7 +146,9 @@ void drawTextureTriangle(DrawingWindow &window, CanvasTriangle triangle, Texture
     auto bdiff = triangle.v2() - triangle.v1();
     float bStep = bdiff.y == 0 ? 0 : bdiff.x / bdiff.y;
 
-    for(float y = 0; y <= triangle.v1().y - triangle.v2().y; y++) {
+    cout << "start draw second triangle" << endl;
+
+    for(float y = 0; y < triangle.v1().y - triangle.v2().y; y++) {
         float ny = triangle.v2().y + y;
         float from = triangle.v2().x + step * y;
         float to = triangle.v2().x + bStep * y;
@@ -177,7 +180,8 @@ void drawTextureTriangle(DrawingWindow &window, CanvasTriangle triangle, Texture
         //window.setPixelColour(to, ny, encodeColor(Colour(255, 255, 0)));
     }
 
-    //drawTriangle(window, triangle, Colour(0, 255, 0));
+    drawTriangle(window, CanvasTriangle(triangle.v0(), mid, triangle.v1()), Colour(255, 0, 0));
+    drawTriangle(window, CanvasTriangle(triangle.v2(), mid, triangle.v1()), Colour(0, 255, 0));
 }
 
 void draw(DrawingWindow &window) {
@@ -224,8 +228,9 @@ void handleEvent(SDL_Event event, DrawingWindow &window) {
 int main(int argc, char *argv[]) {
     DrawingWindow window = DrawingWindow(WIDTH, HEIGHT, false);
     SDL_Event event;
-    //drawTextureTriangle(window, CanvasTriangle(CanvasPoint(50, 0, glm::vec2(0, 0)), CanvasPoint(0, 200, glm::vec2(100, 0)), CanvasPoint(200, 200, glm::vec2(50, 50))), map);
-    drawTextureTriangle(window, CanvasTriangle(CanvasPoint(160, 10, glm::vec2(195, 5)), CanvasPoint(300, 230, glm::vec2(395, 380)), CanvasPoint(10, 150, glm::vec2(65, 300))), map);
+    drawTextureTriangle(window, CanvasTriangle(CanvasPoint(76, 177, glm::vec2(38, 154)), CanvasPoint(10, 200, glm::vec2(100, 0)), CanvasPoint(200, 200, glm::vec2(50, 50))), map);
+    //v0 (76, 177, 0) 1[38, 154] v1 (301, 177, 0) 1[191, 168] v2 (145, 82, 0) 1[192, 166]
+    //drawTextureTriangle(window, CanvasTriangle(CanvasPoint(160, 10, glm::vec2(195, 5)), CanvasPoint(300, 230, glm::vec2(395, 380)), CanvasPoint(10, 150, glm::vec2(65, 300))), map);
     //drawTextureTriangle(window, CanvasTriangle(CanvasPoint(0, 0), CanvasPoint(0, 50), CanvasPoint(50, 25)), map);
     
     while (true) {
