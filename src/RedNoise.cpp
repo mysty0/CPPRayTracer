@@ -103,18 +103,6 @@ void drawFilledTriangle(DrawingWindow &window, CanvasTriangle triangle, Colour c
 #define inverseStep(x, start, end) (x - start) / (end - start)
 #define convertCS(x, start, end, newStart, newEnd) step(inverseStep(x, start, end), newStart, newEnd)
 glm::vec2 convertToTex(glm::vec2 x, CanvasPoint start, CanvasPoint end) {
-    
-    // auto diff = end - start;
-    // if(diff.x == 0 || diff.y == 0) {
-    //     auto xdiff = x - start.vec2();
-    //     glm::vec2 res;
-    //     if(diff.x == 0 && diff.y == 0) return start.texturePoint;
-    //     if(diff.x == 0) res = glm::vec2(0, xdiff.y/diff.y);
-    //     else if(diff.y == 0) res = glm::vec2(xdiff.x/diff.x, 0);
-        
-    //     return start.texturePoint + (end.texturePoint - start.texturePoint) * res;
-    // }
-
     return convertCS(x, start.vec2(), end.vec2(), start.texturePoint, end.texturePoint);
 }
 
@@ -132,9 +120,6 @@ void drawTextureTriangle(DrawingWindow &window, CanvasTriangle triangle, Texture
     float step = diff.y == 0 ? 0 : diff.x / diff.y;
     float xMid = triangle.v0().x + step * (triangle.v1().y - triangle.v0().y);
     auto mid = CanvasPoint(xMid, triangle.v1().y, glm::vec2(convertCS(xMid, triangle.v2().x, triangle.v0().x, triangle.v2().texturePoint.x, triangle.v0().texturePoint.x), triangle.v1().texturePoint.y));
-    
-    cout << "v0 " << triangle.v0() << " v1 " << triangle.v1() << " v2 " << triangle.v2() << endl;
-    cout << "mid " << mid << endl;
 
     auto adiff = triangle.v1() - triangle.v0();
     float aStep = adiff.y == 0 ? 0 : adiff.x / adiff.y;
@@ -146,7 +131,6 @@ void drawTextureTriangle(DrawingWindow &window, CanvasTriangle triangle, Texture
 
         auto fromTex = convertToTex(glm::vec2(from, ny), mid, triangle.v0());
         auto toTex = convertToTex(glm::vec2(to, ny), triangle.v1(), triangle.v0());
-        //cout << to << " " << toTex.x << endl;
         drawTexLine(window, CanvasPoint(from, ny, fromTex), CanvasPoint(to, ny, toTex), map);
     }
 
@@ -162,9 +146,6 @@ void drawTextureTriangle(DrawingWindow &window, CanvasTriangle triangle, Texture
         auto toTex = convertToTex(glm::vec2(to, ny), triangle.v2(), triangle.v1());
         drawTexLine(window, CanvasPoint(from, ny, fromTex), CanvasPoint(to, ny, toTex), map);
     }
-
-    //drawTriangle(window, CanvasTriangle(triangle.v0(), mid, triangle.v1()), Colour(255, 0, 0));
-    //drawTriangle(window, CanvasTriangle(triangle.v2(), mid, triangle.v1()), Colour(0, 255, 0));
 }
 
 void draw(DrawingWindow &window) {
@@ -192,11 +173,10 @@ int main(int argc, char *argv[]) {
     DrawingWindow window = DrawingWindow(WIDTH, HEIGHT, false);
     SDL_Event event;
 
-    //drawTextureTriangle(window, CanvasTriangle(CanvasPoint(160, 10, glm::vec2(195, 5)), CanvasPoint(300, 230, glm::vec2(395, 380)), CanvasPoint(10, 150, glm::vec2(65, 300))), map);
+    drawTextureTriangle(window, CanvasTriangle(CanvasPoint(160, 10, glm::vec2(195, 5)), CanvasPoint(300, 230, glm::vec2(395, 380)), CanvasPoint(10, 150, glm::vec2(65, 300))), map);
 
     //v0 (21, 165, 0) 1[401, 212] v1 (21, 95, 0) 1[141, 6] v2 (294, 4, 0) 1[198, 305]
-    drawTextureTriangle(window, CanvasTriangle(CanvasPoint(21, 165, glm::vec2(401, 212)), CanvasPoint(21, 95, glm::vec2(141, 6)), CanvasPoint(294, 4, glm::vec2(198, 305))), map);
-
+    //drawTextureTriangle(window, CanvasTriangle(CanvasPoint(21, 165, glm::vec2(401, 212)), CanvasPoint(21, 95, glm::vec2(141, 6)), CanvasPoint(294, 4, glm::vec2(198, 305))), map);
 
     while (true) {
         // We MUST poll for events - otherwise the window will freeze !
