@@ -13,5 +13,6 @@ public:
 
 	TextureMap();
 	TextureMap(const std::string &filename);
+	uint32_t point(size_t x, size_t y);
 	friend std::ostream &operator<<(std::ostream &os, const TextureMap &point);
 };
