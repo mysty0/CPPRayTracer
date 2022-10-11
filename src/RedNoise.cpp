@@ -138,6 +138,8 @@ void drawTextureTriangle(DrawingWindow &window, CanvasTriangle triangle, Texture
         float ny = triangle.v2().y + y;
         float from = triangle.v2().x + step * y;
         float to = triangle.v2().x + bStep * y;
+
+        auto fromTex = convertCS(glm::vec2(from, ny), triangle.v2().vec2(), mid.vec2(), triangle.v2().texturePoint, mid.texturePoint);
         auto toTex = convertCS(glm::vec2(to, ny), triangle.v2().vec2(), triangle.v1().vec2(), triangle.v2().texturePoint, triangle.v1().texturePoint);
         drawTexLine(window, CanvasPoint(from, ny, fromTex), CanvasPoint(to, ny, toTex), map);
     }
@@ -157,6 +159,7 @@ void handleEvent(SDL_Event event, DrawingWindow &window) {
         else if (event.key.keysym.sym == SDLK_u) drawTriangle(window, CanvasTriangle(randomPoint(window), randomPoint(window), randomPoint(window)), randomColor());
         else if (event.key.keysym.sym == SDLK_f) drawFilledTriangle(window, CanvasTriangle(randomPoint(window), randomPoint(window), randomPoint(window)), randomColor());
         else if (event.key.keysym.sym == SDLK_g) drawTextureTriangle(window, CanvasTriangle(randomPointWithTexture(window, map), randomPointWithTexture(window, map), randomPointWithTexture(window, map)), map);
+        else if (event.key.keysym.sym == SDLK_q) exit(0);
     } else if (event.type == SDL_MOUSEBUTTONDOWN) {
         window.savePPM("output.ppm");
         window.saveBMP("output.bmp");
