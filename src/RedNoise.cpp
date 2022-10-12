@@ -99,9 +99,9 @@ void drawFilledTriangle(DrawingWindow &window, CanvasTriangle triangle, Colour c
     }
 }
 
-#define step(x, start, end) start + (end - start) * x
-#define inverseStep(x, start, end) (x - start) / (end - start)
-#define convertCS(x, start, end, newStart, newEnd) step(inverseStep(x, start, end), newStart, newEnd)
+#define interpolate(x, start, end) start + (end - start) * x
+#define inverseInterpolate(x, start, end) (x - start) / (end - start)
+#define convertCS(x, start, end, newStart, newEnd) interpolate(inverseInterpolate(x, start, end), newStart, newEnd)
 glm::vec2 convertToTex(glm::vec2 x, CanvasPoint start, CanvasPoint end) {
     return convertCS(x, start.vec2(), end.vec2(), start.texturePoint, end.texturePoint);
 }
@@ -119,18 +119,19 @@ void drawTextureTriangle(DrawingWindow &window, CanvasTriangle triangle, Texture
     auto diff = (triangle.v2() - triangle.v0());
     float step = diff.y == 0 ? 0 : diff.x / diff.y;
     float xMid = triangle.v0().x + step * (triangle.v1().y - triangle.v0().y);
-    auto mid = CanvasPoint(xMid, triangle.v1().y, glm::vec2(convertCS(xMid, triangle.v2().x, triangle.v0().x, triangle.v2().texturePoint.x, triangle.v0().texturePoint.x), triangle.v1().texturePoint.y));
+    auto mid = CanvasPoint(xMid, triangle.v1().y, convertToTex(glm::vec2(xMid, triangle.v1().y), triangle.v2(), triangle.v0()));
 
     auto adiff = triangle.v1() - triangle.v0();
     float aStep = adiff.y == 0 ? 0 : adiff.x / adiff.y;
 
+    // v0 -> mid; v0 -> v1
     for(float y = 0; y < triangle.v0().y - triangle.v1().y; y++) {
         float ny = triangle.v1().y + y;
         float from = xMid + step * y;
         float to = triangle.v1().x + aStep * y;
 
-        auto fromTex = convertToTex(glm::vec2(from, ny), mid, triangle.v0());
-        auto toTex = convertToTex(glm::vec2(to, ny), triangle.v1(), triangle.v0());
+        auto fromTex = convertToTex(glm::vec2(from, ny), triangle.v0(), mid);
+        auto toTex = convertToTex(glm::vec2(to, ny), triangle.v0(), triangle.v1());
         drawTexLine(window, CanvasPoint(from, ny, fromTex), CanvasPoint(to, ny, toTex), map);
     }
 
