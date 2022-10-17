@@ -55,6 +55,13 @@ CanvasPoint randomPointWithTexture(DrawingWindow &window, TextureMap& map) {
     return CanvasPoint(rand() % window.width, rand() % window.height, glm::vec2(rand() % map.width, rand() % map.height));
 }
 
+#define step(x, start, end) start + (end - start) * x
+#define inverseStep(x, start, end) (x - start) / (end - start)
+#define interpolate(x, start, end, newStart, newEnd) step(inverseStep(x, start, end), newStart, newEnd)
+glm::vec2 convertToTex(glm::vec2 x, CanvasPoint start, CanvasPoint end) {
+    return interpolate(x, start.vec2(), end.vec2(), start.texturePoint, end.texturePoint);
+}
+
 void drawLine(DrawingWindow &window, CanvasPoint from, CanvasPoint to, Colour color) {
     auto diff = to - from;
     float numberOfSteps = fmax(abs(diff.x), abs(diff.y));
@@ -62,6 +69,22 @@ void drawLine(DrawingWindow &window, CanvasPoint from, CanvasPoint to, Colour co
     for(float i = 0.0; i < numberOfSteps; i++) {
         auto point = from + stepSize * i;
         window.setPixelColour(round(point.x), round(point.y), encodeColor(color));
+    }
+}
+
+void drawDepthLine(DrawingWindow &window, CanvasPoint from, CanvasPoint to, Colour color, vector<vector<float>> &depthBuffer) {
+    auto diff = to - from;
+    float numberOfSteps = fmax(abs(diff.x), abs(diff.y));
+    auto stepSize = diff / numberOfSteps;
+    for(float i = 0.0; i < numberOfSteps; i++) {
+        auto point = from + stepSize * i;
+        auto x = round(point.x);
+        auto y = round(point.y);
+        auto z = -1.0/point.depth;
+        if(z > depthBuffer[y][x]) {
+            window.setPixelColour(x, y, encodeColor(color));
+            depthBuffer[y][x] = z;
+        }
     }
 }
 
@@ -81,7 +104,7 @@ void drawTriangle(DrawingWindow &window, CanvasTriangle triangle, Colour color) 
     drawLine(window, triangle.v2(), triangle.v0(), color);
 }
 
-void drawFilledTriangle(DrawingWindow &window, CanvasTriangle triangle, Colour color) {
+void drawFilledTriangle(DrawingWindow &window, CanvasTriangle triangle, Colour color, vector<vector<float>> &depthBuffer) {
     if(triangle.v0().y < triangle.v1().y) 
         std::swap(triangle.vertices[0], triangle.vertices[1]);
     
@@ -94,18 +117,16 @@ void drawFilledTriangle(DrawingWindow &window, CanvasTriangle triangle, Colour c
     float xDiff = (triangle.v2().x - triangle.v0().x);
     float yDiff = (triangle.v2().y - triangle.v0().y);
     float step = yDiff == 0 ? 0 : xDiff / yDiff;
-    float xMid =  triangle.v0().x + step * (triangle.v1().y - triangle.v0().y);
-    for(float x = fmin(xMid, triangle.v1().x); x <= fmax(xMid, triangle.v1().x); x ++) {
-        drawLine(window, CanvasPoint(x, triangle.v1().y), triangle.v0(), color);
-        drawLine(window, CanvasPoint(x, triangle.v1().y), triangle.v2(), color);
-    }
-}
+    float xMid = triangle.v0().x + step * (triangle.v1().y - triangle.v0().y);
+    float zMid = interpolate(xMid, triangle.v0().x, triangle.v2().x, triangle.v0().depth, triangle.v2().depth);
 
-#define interpolate(x, start, end) start + (end - start) * x
-#define inverseInterpolate(x, start, end) (x - start) / (end - start)
-#define convertCS(x, start, end, newStart, newEnd) interpolate(inverseInterpolate(x, start, end), newStart, newEnd)
-glm::vec2 convertToTex(glm::vec2 x, CanvasPoint start, CanvasPoint end) {
-    return convertCS(x, start.vec2(), end.vec2(), start.texturePoint, end.texturePoint);
+    float start = fmin(xMid, triangle.v1().x);
+    float end = fmax(xMid, triangle.v1().x);
+    for(float x = start; x <= end; x ++) {
+        float z = interpolate(x, start, end, zMid, triangle.v1().depth);
+        drawDepthLine(window, CanvasPoint(x, triangle.v1().y, z), triangle.v0(), color, depthBuffer);
+        drawDepthLine(window, CanvasPoint(x, triangle.v1().y, z), triangle.v2(), color, depthBuffer);
+    }
 }
 
 void drawTextureTriangle(DrawingWindow &window, CanvasTriangle triangle, TextureMap &map) {
@@ -163,7 +184,7 @@ void drawDot(DrawingWindow &window, glm::vec2 pos, float size, Colour color) {
 CanvasPoint getCanvasIntersectionPoint(glm::vec3 vertexPos, glm::vec3 cameraPos, float focalLen, glm::vec2 viewportSize) {
     auto relativePos = vertexPos - cameraPos;
     glm::vec2 pos = (glm::vec2(-relativePos.x, relativePos.y) / relativePos.z) * focalLen + viewportSize / 2.0;
-    return CanvasPoint(pos.x, pos.y);
+    return CanvasPoint(pos.x, pos.y, relativePos.z);
 }
 
 void draw(DrawingWindow &window) {
@@ -220,8 +241,8 @@ void handleEvent(SDL_Event event, DrawingWindow &window) {
         else if (event.key.keysym.sym == SDLK_RIGHT) std::cout << "RIGHT" << std::endl;
         else if (event.key.keysym.sym == SDLK_UP) std::cout << "UP" << std::endl;
         else if (event.key.keysym.sym == SDLK_DOWN) std::cout << "DOWN" << std::endl;
-        else if (event.key.keysym.sym == SDLK_u) drawTriangle(window, CanvasTriangle(randomPoint(window), randomPoint(window), randomPoint(window)), randomColor());
-        else if (event.key.keysym.sym == SDLK_f) drawFilledTriangle(window, CanvasTriangle(randomPoint(window), randomPoint(window), randomPoint(window)), randomColor());
+        //else if (event.key.keysym.sym == SDLK_u) drawTriangle(window, CanvasTriangle(randomPoint(window), randomPoint(window), randomPoint(window)), randomColor());
+        //else if (event.key.keysym.sym == SDLK_f) drawFilledTriangle(window, CanvasTriangle(randomPoint(window), randomPoint(window), randomPoint(window)), randomColor());
         else if (event.key.keysym.sym == SDLK_q) exit(0);
     } else if (event.type == SDL_MOUSEBUTTONDOWN) {
         window.savePPM("output.ppm");
@@ -229,11 +250,23 @@ void handleEvent(SDL_Event event, DrawingWindow &window) {
     }
 }
 
+vector<vector<float>> initDepthBuffer(int w, int h) {
+    vector<vector<float>> res(h);
+    for(int y = 0; y < h; y++) {
+        for(int x = 0; x < w; x++) {
+            res[y] = vector<float>(w);
+        }
+    }
+    return res;
+}
+
 int main(int argc, char *argv[]) {
     DrawingWindow window = DrawingWindow(WIDTH, HEIGHT, false);
     SDL_Event event;
 
    // drawDot(window, glm::vec2(10, 10), 10, Colour(255, 255, 255));
+
+    auto depthBuffer = initDepthBuffer(WIDTH, HEIGHT);
 
     auto obj = loadOBJ("cornell-box.obj", 0.25);
     glm::vec3 camPos(0, 0, 4);
@@ -243,7 +276,7 @@ int main(int argc, char *argv[]) {
         auto p1 = (getCanvasIntersectionPoint(t.vertices[0], camPos, f, windowSize));
         auto p2 = (getCanvasIntersectionPoint(t.vertices[1], camPos, f, windowSize));
         auto p3 = (getCanvasIntersectionPoint(t.vertices[2], camPos, f, windowSize));
-        drawFilledTriangle(window, CanvasTriangle(p1, p2, p3), t.colour);
+        drawFilledTriangle(window, CanvasTriangle(p1, p2, p3), t.colour, depthBuffer);
         // drawDot(window, p1.vec2(), 10, t.colour);
         // drawDot(window, p2.vec2(), 10, t.colour);
         // drawDot(window, p3.vec2(), 10, t.colour);
