@@ -44,7 +44,7 @@ std::ostream &operator<<(std::ostream &os, const CanvasPoint &point) {
 }
 
 #define POINT_OP(op) CanvasPoint(a.x op b.x, a.y op b.y, a.depth, a.brightness, a.texturePoint.x op b.texturePoint.x, a.texturePoint.y op b.texturePoint.y)
-#define POINT_SINGLE_OP(op) CanvasPoint(a.x op b, a.y op b, a.depth, a.brightness, a.texturePoint.x op b, a.texturePoint.y op b)
+#define POINT_SINGLE_OP(op) CanvasPoint(a.x op b, a.y op b, a.depth op b, a.brightness, a.texturePoint.x op b, a.texturePoint.y op b)
 
 CanvasPoint operator+(const CanvasPoint &a, const CanvasPoint &b) {
 	return POINT_OP(+);

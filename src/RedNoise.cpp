@@ -9,6 +9,8 @@
 #include <Colour.h>
 #include <CanvasTriangle.h>
 #include <TextureMap.h>
+#include <ModelTriangle.h>
+#include <map>
 
 #define WIDTH 320
 #define HEIGHT 240
@@ -124,7 +126,6 @@ void drawTextureTriangle(DrawingWindow &window, CanvasTriangle triangle, Texture
     auto adiff = triangle.v1() - triangle.v0();
     float aStep = adiff.y == 0 ? 0 : adiff.x / adiff.y;
 
-    // v0 -> mid; v0 -> v1
     for(float y = 0; y < triangle.v0().y - triangle.v1().y; y++) {
         float ny = triangle.v1().y + y;
         float from = xMid + step * y;
@@ -149,10 +150,69 @@ void drawTextureTriangle(DrawingWindow &window, CanvasTriangle triangle, Texture
     }
 }
 
+void drawDot(DrawingWindow &window, glm::vec2 pos, float size, Colour color) {
+    for(int x = 0; x < size; x++) {
+        for(int y = 0; y < size; y++) {
+            if(glm::length2(glm::vec2(x, y) - size/2) <= size) {
+                window.setPixelColour(pos.x + x - size/2, pos.y + y - size/2, encodeColor(color));
+            }
+        }
+    }
+}
+
+CanvasPoint getCanvasIntersectionPoint(glm::vec3 vertexPos, glm::vec3 cameraPos, float focalLen, glm::vec2 viewportSize) {
+    auto relativePos = vertexPos - cameraPos;
+    glm::vec2 pos = (glm::vec2(-relativePos.x, relativePos.y) / relativePos.z) * focalLen + viewportSize / 2.0;
+    return CanvasPoint(pos.x, pos.y);
+}
+
 void draw(DrawingWindow &window) {
 }
 
-TextureMap map("texture.ppm");
+map<string, Colour> loadMTL(string path) {
+    map<string, Colour> mat;
+
+    ifstream inputStream(path);
+	string nextLine;
+    string name;
+
+    while(!inputStream.eof()) {
+        std::getline(inputStream, nextLine);
+        if(nextLine.size() == 0) continue;
+        auto tokens = split(nextLine, ' ');
+        auto ins = tokens[0];
+        if(ins == "newmtl") name = tokens[1];
+        if(ins == "Kd") mat[name] = Colour(stof(tokens[1]) * 255, stof(tokens[2]) * 255, stof(tokens[3]) * 255);
+    }
+
+    return mat;
+}
+
+vector<ModelTriangle> loadOBJ(string path, float scale = 1) {
+    vector<ModelTriangle> triangles;
+
+    ifstream inputStream(path);
+	string nextLine;
+    vector<glm::vec3> vertices;
+    map<string, Colour> mat;
+    Colour color;
+
+    while(!inputStream.eof()) {
+        std::getline(inputStream, nextLine);
+        if(nextLine.size() == 0) continue;
+        auto tokens = split(nextLine, ' ');
+        auto ins = tokens[0];
+        if(ins == "mtllib") mat = loadMTL(tokens[1]);
+        else if(ins == "usemtl") color = mat[tokens[1]];
+        // else if(ins == "o") {
+        //     vertices.clear();
+        //     cout << "clear" << endl;
+        // }
+        else if(ins == "v") vertices.push_back(glm::vec3(stof(tokens[1]), stof(tokens[2]), stof(tokens[3])) * scale);
+        else if(ins == "f") triangles.push_back(ModelTriangle(vertices[stoi(tokens[1])-1], vertices[stoi(tokens[2])-1], vertices[stoi(tokens[3])-1], color));
+    }
+    return triangles;
+}
 
 void handleEvent(SDL_Event event, DrawingWindow &window) {
     if (event.type == SDL_KEYDOWN) {
@@ -162,7 +222,6 @@ void handleEvent(SDL_Event event, DrawingWindow &window) {
         else if (event.key.keysym.sym == SDLK_DOWN) std::cout << "DOWN" << std::endl;
         else if (event.key.keysym.sym == SDLK_u) drawTriangle(window, CanvasTriangle(randomPoint(window), randomPoint(window), randomPoint(window)), randomColor());
         else if (event.key.keysym.sym == SDLK_f) drawFilledTriangle(window, CanvasTriangle(randomPoint(window), randomPoint(window), randomPoint(window)), randomColor());
-        else if (event.key.keysym.sym == SDLK_g) drawTextureTriangle(window, CanvasTriangle(randomPointWithTexture(window, map), randomPointWithTexture(window, map), randomPointWithTexture(window, map)), map);
         else if (event.key.keysym.sym == SDLK_q) exit(0);
     } else if (event.type == SDL_MOUSEBUTTONDOWN) {
         window.savePPM("output.ppm");
@@ -174,7 +233,23 @@ int main(int argc, char *argv[]) {
     DrawingWindow window = DrawingWindow(WIDTH, HEIGHT, false);
     SDL_Event event;
 
-    drawTextureTriangle(window, CanvasTriangle(CanvasPoint(160, 10, glm::vec2(195, 5)), CanvasPoint(300, 230, glm::vec2(395, 380)), CanvasPoint(10, 150, glm::vec2(65, 300))), map);
+   // drawDot(window, glm::vec2(10, 10), 10, Colour(255, 255, 255));
+
+    auto obj = loadOBJ("cornell-box.obj", 0.25);
+    glm::vec3 camPos(0, 0, 4);
+    float f = 240*2;
+    glm::vec2 windowSize(WIDTH, HEIGHT);
+    for(auto t : obj) {
+        auto p1 = (getCanvasIntersectionPoint(t.vertices[0], camPos, f, windowSize));
+        auto p2 = (getCanvasIntersectionPoint(t.vertices[1], camPos, f, windowSize));
+        auto p3 = (getCanvasIntersectionPoint(t.vertices[2], camPos, f, windowSize));
+        drawFilledTriangle(window, CanvasTriangle(p1, p2, p3), t.colour);
+        // drawDot(window, p1.vec2(), 10, t.colour);
+        // drawDot(window, p2.vec2(), 10, t.colour);
+        // drawDot(window, p3.vec2(), 10, t.colour);
+    }
+
+    //drawTextureTriangle(window, CanvasTriangle(CanvasPoint(160, 10, glm::vec2(195, 5)), CanvasPoint(300, 230, glm::vec2(395, 380)), CanvasPoint(10, 150, glm::vec2(65, 300))), map);
 
     //v0 (21, 165, 0) 1[401, 212] v1 (21, 95, 0) 1[141, 6] v2 (294, 4, 0) 1[198, 305]
     //drawTextureTriangle(window, CanvasTriangle(CanvasPoint(21, 165, glm::vec2(401, 212)), CanvasPoint(21, 95, glm::vec2(141, 6)), CanvasPoint(294, 4, glm::vec2(198, 305))), map);
