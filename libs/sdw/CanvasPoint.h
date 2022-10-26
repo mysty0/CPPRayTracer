@@ -15,6 +15,7 @@ struct CanvasPoint {
 	CanvasPoint(float xPos, float yPos);
 	CanvasPoint(float xPos, float yPos, float pointDepth, float pointBrightness, float xTexPos, float yTexPos);
 	CanvasPoint(float xPos, float yPos, glm::vec2 texPoint);
+	CanvasPoint(float xPos, float yPos, float zPos, glm::vec2 texPoint);
 	CanvasPoint(float xPos, float yPos, float pointDepth);
 	CanvasPoint(float xPos, float yPos, float pointDepth, float pointBrightness);
 	friend std::ostream &operator<<(std::ostream &os, const CanvasPoint &point);

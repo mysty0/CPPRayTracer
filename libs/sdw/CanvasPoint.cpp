@@ -24,6 +24,13 @@ CanvasPoint::CanvasPoint(float xPos, float yPos, glm::vec2 texPoint) :
 		brightness(1.0),
 		texturePoint(texPoint) {}
 
+CanvasPoint::CanvasPoint(float xPos, float yPos, float zPos, glm::vec2 texPoint) :
+		x(xPos),
+		y(yPos),
+		depth(zPos),
+		brightness(1.0),
+		texturePoint(texPoint) {}
+
 CanvasPoint::CanvasPoint(float xPos, float yPos, float pointDepth) :
 		x(xPos),
 		y(yPos),

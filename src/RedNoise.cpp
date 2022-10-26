@@ -59,6 +59,8 @@ CanvasPoint randomPointWithTexture(DrawingWindow &window, TextureMap& map) {
 #define inverseStep(x, start, end) (x - start) / (end - start)
 #define interpolate(x, start, end, newStart, newEnd) step(inverseStep(x, start, end), newStart, newEnd)
 glm::vec2 convertToTex(glm::vec2 x, CanvasPoint start, CanvasPoint end) {
+    //if(start.x == end.x) return glm::vec2(x.x, interpolate(x.y, start.y, end.y, start.texturePoint.y, end.texturePoint.y));
+    //if(start.y == end.y) return glm::vec2(interpolate(x.x, start.x, end.x, start.texturePoint.x, end.texturePoint.x), x.y);
     return interpolate(x, start.vec2(), end.vec2(), start.texturePoint, end.texturePoint);
 }
 
@@ -88,13 +90,21 @@ void drawDepthLine(DrawingWindow &window, CanvasPoint from, CanvasPoint to, Colo
     }
 }
 
-void drawTexLine(DrawingWindow &window, CanvasPoint from, CanvasPoint to, TextureMap &map) {
+void drawTexLine(DrawingWindow &window, CanvasPoint from, CanvasPoint to, TextureMap &map, vector<vector<float>> &depthBuffer) {
     auto diff = to - from;
     float numberOfSteps = fmax(abs(diff.x), abs(diff.y));
     auto stepSize = diff / numberOfSteps;
     for(float i = 0.0; i < numberOfSteps; i++) {
         auto point = from + stepSize * i;
-        window.setPixelColour(round(point.x), round(point.y), map.point(floor(point.texturePoint.x), floor(point.texturePoint.y)));
+        auto x = round(point.x);
+        auto y = round(point.y);
+        auto z = -1.0/point.depth;
+        //cout << z << endl;
+
+        //if(z >= depthBuffer[y][x]) {
+            window.setPixelColour(x, y, map.point(floor(point.texturePoint.x), floor(point.texturePoint.y)));
+            depthBuffer[y][x] = z;
+        //}
     }
 }
 
@@ -129,7 +139,7 @@ void drawFilledTriangle(DrawingWindow &window, CanvasTriangle triangle, Colour c
     }
 }
 
-void drawTextureTriangle(DrawingWindow &window, CanvasTriangle triangle, TextureMap &map) {
+void drawTextureTriangle(DrawingWindow &window, CanvasTriangle triangle, TextureMap &map, vector<vector<float>> &depthBuffer) {
     if(triangle.v0().y < triangle.v1().y)
         std::swap(triangle.vertices[0], triangle.vertices[1]);
     
@@ -139,10 +149,14 @@ void drawTextureTriangle(DrawingWindow &window, CanvasTriangle triangle, Texture
     if(triangle.v1().y < triangle.v2().y) 
         std::swap(triangle.vertices[1], triangle.vertices[2]);
 
+    if(triangle.v0().x == triangle.v1().x) triangle.v0().x += 0.1;
+    if(triangle.v2().x == triangle.v1().x) triangle.v2().x += 0.1;
+
     auto diff = (triangle.v2() - triangle.v0());
     float step = diff.y == 0 ? 0 : diff.x / diff.y;
     float xMid = triangle.v0().x + step * (triangle.v1().y - triangle.v0().y);
     auto mid = CanvasPoint(xMid, triangle.v1().y, convertToTex(glm::vec2(xMid, triangle.v1().y), triangle.v2(), triangle.v0()));
+    mid.depth = interpolate(xMid, triangle.v0().x, triangle.v2().x, triangle.v0().depth, triangle.v2().depth);
 
     auto adiff = triangle.v1() - triangle.v0();
     float aStep = adiff.y == 0 ? 0 : adiff.x / adiff.y;
@@ -152,9 +166,12 @@ void drawTextureTriangle(DrawingWindow &window, CanvasTriangle triangle, Texture
         float from = xMid + step * y;
         float to = triangle.v1().x + aStep * y;
 
-        auto fromTex = convertToTex(glm::vec2(from, ny), triangle.v0(), mid);
-        auto toTex = convertToTex(glm::vec2(to, ny), triangle.v0(), triangle.v1());
-        drawTexLine(window, CanvasPoint(from, ny, fromTex), CanvasPoint(to, ny, toTex), map);
+        glm::vec2 fromTex = convertToTex(glm::vec2(from, ny), triangle.v0(), mid);
+        glm::vec2 toTex = convertToTex(glm::vec2(to, ny), triangle.v0(), triangle.v1());
+
+        float fromZ = interpolate(ny, from, to, triangle.v0().depth, mid.depth);
+        float toZ = interpolate(ny, from, to, triangle.v0().depth, triangle.v1().depth);
+        drawTexLine(window, CanvasPoint(from, ny, fromZ, fromTex), CanvasPoint(to, ny, toZ, toTex), map, depthBuffer);
     }
 
     auto bdiff = triangle.v2() - triangle.v1();
@@ -165,9 +182,12 @@ void drawTextureTriangle(DrawingWindow &window, CanvasTriangle triangle, Texture
         float from = triangle.v2().x + step * y;
         float to = triangle.v2().x + bStep * y;
 
-        auto fromTex = convertToTex(glm::vec2(from, ny), triangle.v2(), mid);
-        auto toTex = convertToTex(glm::vec2(to, ny), triangle.v2(), triangle.v1());
-        drawTexLine(window, CanvasPoint(from, ny, fromTex), CanvasPoint(to, ny, toTex), map);
+        glm::vec2 fromTex = convertToTex(glm::vec2(from, ny), triangle.v2(), mid);
+        glm::vec2 toTex = convertToTex(glm::vec2(to, ny), triangle.v2(), triangle.v1());
+
+        float fromZ = interpolate(ny, from, to, triangle.v2().depth, mid.depth);
+        float toZ = interpolate(ny, from, to, triangle.v2().depth, triangle.v1().depth);
+        drawTexLine(window, CanvasPoint(from, ny, fromZ, fromTex), CanvasPoint(to, ny, toZ, toTex), map, depthBuffer);
     }
 }
 
@@ -187,11 +207,27 @@ CanvasPoint getCanvasIntersectionPoint(glm::vec3 vertexPos, glm::vec3 cameraPos,
     return CanvasPoint(pos.x, pos.y, relativePos.z);
 }
 
-void draw(DrawingWindow &window) {
-}
+struct ObjectTexture {
+    Colour color{};
+    TextureMap map{};
 
-map<string, Colour> loadMTL(string path) {
-    map<string, Colour> mat;
+    ObjectTexture() {};
+    ObjectTexture(Colour color, TextureMap map) : color(color), map(map) {};
+    ObjectTexture(Colour color) : color(color) {};
+    ObjectTexture(TextureMap map) : map(map) {};
+};
+
+struct ModelObject {
+    string name;
+    ObjectTexture texture{};
+    vector<ModelTriangle> triangles{};
+
+    ModelObject() {};
+    ModelObject(string name, ObjectTexture texture, vector<ModelTriangle> triangles) : name(name), texture(texture), triangles(triangles) {};
+};
+
+map<string, ObjectTexture> loadMTL(string path) {
+    map<string, ObjectTexture> mat;
 
     ifstream inputStream(path);
 	string nextLine;
@@ -203,20 +239,24 @@ map<string, Colour> loadMTL(string path) {
         auto tokens = split(nextLine, ' ');
         auto ins = tokens[0];
         if(ins == "newmtl") name = tokens[1];
-        if(ins == "Kd") mat[name] = Colour(stof(tokens[1]) * 255, stof(tokens[2]) * 255, stof(tokens[3]) * 255);
+        if(ins == "Kd") mat[name] = ObjectTexture(Colour(stof(tokens[1]) * 255, stof(tokens[2]) * 255, stof(tokens[3]) * 255));
+        if(ins == "map_Kd") mat[name] = ObjectTexture(mat[name].color, TextureMap(tokens[1]));
     }
 
     return mat;
 }
 
-vector<ModelTriangle> loadOBJ(string path, float scale = 1) {
-    vector<ModelTriangle> triangles;
+vector<ModelObject> loadOBJ(string path, float scale = 1) {
+    vector<ModelObject> objects;
 
     ifstream inputStream(path);
 	string nextLine;
     vector<glm::vec3> vertices;
-    map<string, Colour> mat;
-    Colour color;
+    vector<glm::vec2> textureMappings;
+    map<string, ObjectTexture> mat;
+    ObjectTexture tex;
+    vector<ModelTriangle> triangles;
+    string name;
 
     while(!inputStream.eof()) {
         std::getline(inputStream, nextLine);
@@ -224,15 +264,31 @@ vector<ModelTriangle> loadOBJ(string path, float scale = 1) {
         auto tokens = split(nextLine, ' ');
         auto ins = tokens[0];
         if(ins == "mtllib") mat = loadMTL(tokens[1]);
-        else if(ins == "usemtl") color = mat[tokens[1]];
+        else if(ins == "usemtl") tex = mat[tokens[1]];
+        else if(ins == "o") {
+            objects.push_back({name, tex, triangles});
+            triangles.clear();
+            name = tokens[1];
+        }
         // else if(ins == "o") {
         //     vertices.clear();
         //     cout << "clear" << endl;
         // }
         else if(ins == "v") vertices.push_back(glm::vec3(stof(tokens[1]), stof(tokens[2]), stof(tokens[3])) * scale);
-        else if(ins == "f") triangles.push_back(ModelTriangle(vertices[stoi(tokens[1])-1], vertices[stoi(tokens[2])-1], vertices[stoi(tokens[3])-1], color));
+        else if(ins == "vt") textureMappings.push_back(glm::vec2(stof(tokens[1]) * tex.map.width, stof(tokens[2]) * tex.map.height));
+        else if(ins == "f") {
+            auto x = split(tokens[1], '/');
+            auto y = split(tokens[2], '/');
+            auto z = split(tokens[3], '/');
+            if(x[1].size() == 0)
+                triangles.push_back(ModelTriangle(vertices[stoi(x[0])-1], vertices[stoi(y[0])-1], vertices[stoi(z[0])-1], tex.color));
+            else
+                triangles.push_back(ModelTriangle(vertices[stoi(x[0])-1], vertices[stoi(y[0])-1], vertices[stoi(z[0])-1], textureMappings[stoi(x[1])-1], textureMappings[stoi(y[1])-1], textureMappings[stoi(z[1])-1], tex.color));
+        }
     }
-    return triangles;
+    objects.push_back({name, tex, triangles});
+
+    return objects;
 }
 
 void handleEvent(SDL_Event event, DrawingWindow &window) {
@@ -260,32 +316,46 @@ vector<vector<float>> initDepthBuffer(int w, int h) {
     return res;
 }
 
+auto objs = loadOBJ("textured-cornell-box.obj", 0.25);
+glm::vec3 camPos(0, 0, 4);
+float f = 240*2;
+
+void draw(DrawingWindow &window) {
+     auto depthBuffer = initDepthBuffer(WIDTH, HEIGHT);
+
+    glm::vec2 windowSize(WIDTH, HEIGHT);
+    for(auto obj : objs) {
+        //cout << obj.name << " " << (obj.texture.map.pixels.size()) << endl;
+        for(auto t : obj.triangles) {
+            auto p1 = (getCanvasIntersectionPoint(t.vertices[0], camPos, f, windowSize));
+            p1.texturePoint = t.texturePoints[0];
+            auto p2 = (getCanvasIntersectionPoint(t.vertices[1], camPos, f, windowSize));
+            p2.texturePoint = t.texturePoints[1];
+            auto p3 = (getCanvasIntersectionPoint(t.vertices[2], camPos, f, windowSize));
+            p3.texturePoint = t.texturePoints[2];
+
+            if(obj.texture.map.pixels.size() == 0) {
+                drawFilledTriangle(window, CanvasTriangle(p1, p2, p3), t.colour, depthBuffer);
+            } else {
+                drawTextureTriangle(window, CanvasTriangle(p1, p2, p3), obj.texture.map, depthBuffer);
+            }
+        }
+    }
+}
+
 int main(int argc, char *argv[]) {
     DrawingWindow window = DrawingWindow(WIDTH, HEIGHT, false);
     SDL_Event event;
 
    // drawDot(window, glm::vec2(10, 10), 10, Colour(255, 255, 255));
 
-    auto depthBuffer = initDepthBuffer(WIDTH, HEIGHT);
-
-    auto obj = loadOBJ("cornell-box.obj", 0.25);
-    glm::vec3 camPos(0, 0, 4);
-    float f = 240*2;
-    glm::vec2 windowSize(WIDTH, HEIGHT);
-    for(auto t : obj) {
-        auto p1 = (getCanvasIntersectionPoint(t.vertices[0], camPos, f, windowSize));
-        auto p2 = (getCanvasIntersectionPoint(t.vertices[1], camPos, f, windowSize));
-        auto p3 = (getCanvasIntersectionPoint(t.vertices[2], camPos, f, windowSize));
-        drawFilledTriangle(window, CanvasTriangle(p1, p2, p3), t.colour, depthBuffer);
-        // drawDot(window, p1.vec2(), 10, t.colour);
-        // drawDot(window, p2.vec2(), 10, t.colour);
-        // drawDot(window, p3.vec2(), 10, t.colour);
-    }
-
-    //drawTextureTriangle(window, CanvasTriangle(CanvasPoint(160, 10, glm::vec2(195, 5)), CanvasPoint(300, 230, glm::vec2(395, 380)), CanvasPoint(10, 150, glm::vec2(65, 300))), map);
+    //drawTextureTriangle(window, CanvasTriangle(CanvasPoint(160, 10, glm::vec2(195, 5)), CanvasPoint(300, 230, glm::vec2(395, 380)), CanvasPoint(10, 150, glm::vec2(65, 300))), map, depthBuffer);
+    
+    //(261.176, 219.62, -3.2984) 1[-1, -1](90.6274, 190.08, -4.6964) 1[-1, -1](60.0602, 219.62, -3.2984) 1[-1, -1]
+   // drawTextureTriangle(window, CanvasTriangle(CanvasPoint(160, 10, glm::vec2(195, 5)), CanvasPoint(300, 230, glm::vec2(395, 380)), CanvasPoint(10, 150, glm::vec2(65, 300))), map, depthBuffer);
 
     //v0 (21, 165, 0) 1[401, 212] v1 (21, 95, 0) 1[141, 6] v2 (294, 4, 0) 1[198, 305]
-    //drawTextureTriangle(window, CanvasTriangle(CanvasPoint(21, 165, glm::vec2(401, 212)), CanvasPoint(21, 95, glm::vec2(141, 6)), CanvasPoint(294, 4, glm::vec2(198, 305))), map);
+    //drawTextureTriangle(window, CanvasTriangle(CanvasPoint(21, 165, glm::vec2(401, 212)), CanvasPoint(21, 95, glm::vec2(401, 6)), CanvasPoint(294, 4, glm::vec2(198, 305))), map, depthBuffer);
 
     while (true) {
         // We MUST poll for events - otherwise the window will freeze !
