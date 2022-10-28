@@ -83,7 +83,7 @@ void drawDepthLine(DrawingWindow &window, CanvasPoint from, CanvasPoint to, Colo
         auto x = round(point.x);
         auto y = round(point.y);
         auto z = -1.0/point.depth;
-        if(z > depthBuffer[y][x]) {
+        if(y > 0 && x > 0 && y < depthBuffer.size() && x < depthBuffer[y].size() && z > depthBuffer[y][x]) {
             window.setPixelColour(x, y, encodeColor(color));
             depthBuffer[y][x] = z;
         }
@@ -101,10 +101,10 @@ void drawTexLine(DrawingWindow &window, CanvasPoint from, CanvasPoint to, Textur
         auto z = -1.0/point.depth;
         //cout << z << endl;
 
-        //if(z >= depthBuffer[y][x]) {
+        if(y > 0 && x > 0 && y < depthBuffer.size() && x < depthBuffer[y].size() && z >= depthBuffer[y][x]) {
             window.setPixelColour(x, y, map.point(floor(point.texturePoint.x), floor(point.texturePoint.y)));
             depthBuffer[y][x] = z;
-        //}
+        }
     }
 }
 
@@ -142,31 +142,28 @@ void drawFilledTriangle(DrawingWindow &window, CanvasTriangle triangle, Colour c
 }
 
 void drawSimpleTexTriangle(DrawingWindow &window, float step, bool bottomPart, CanvasPoint top, CanvasPoint bottom, CanvasPoint mid, TextureMap &map, vector<vector<float>> &depthBuffer) {
-    //bottom = v1
-    //top = v0
-    
     auto adiff = bottom - top;
-    //if(bottomPart) adiff = top - bottom;
     float aStep = adiff.y == 0 ? 0 : adiff.x / adiff.y;
 
     float initX = mid.x;
     if(bottomPart) initX = bottom.x;
+    auto initPos = bottom;
 
     float len = top.y - bottom.y;
-    //if(bottomPart) len = bottom.y - top.y;
-    for(float y = 0; y < len; y++) {
-        float ny = bottom.y + y;
-        float from = initX + step * y;
-        float to = bottom.x + aStep * y;
 
-        if(bottomPart) std::swap(top, bottom);
+    if(bottomPart) std::swap(top, bottom);
+    for(float y = 0; y < len; y++) {
+        float ny = initPos.y + y;
+        float from = initX + step * y;
+        float to = initPos.x + aStep * y;
+
         glm::vec2 fromTex = convertToTex(glm::vec2(from, ny), top, mid);
         glm::vec2 toTex = convertToTex(glm::vec2(to, ny), top, bottom);
         float fromZ = interpolate(from, top.x, mid.x, top.depth, mid.depth);
         float toZ = interpolate(to, top.x, bottom.x, top.depth, bottom.depth);
-        if(bottomPart) std::swap(top, bottom);
         drawTexLine(window, CanvasPoint(from, ny, fromZ, fromTex), CanvasPoint(to, ny, toZ, toTex), map, depthBuffer);
     }
+    if(bottomPart) std::swap(top, bottom);
 }
 
 void drawTextureTriangle(DrawingWindow &window, CanvasTriangle triangle, TextureMap &map, vector<vector<float>> &depthBuffer) {
@@ -179,8 +176,8 @@ void drawTextureTriangle(DrawingWindow &window, CanvasTriangle triangle, Texture
     if(triangle.v1().y < triangle.v2().y) 
         std::swap(triangle.vertices[1], triangle.vertices[2]);
 
-    if(triangle.v0().x == triangle.v1().x) triangle.v0().x += 0.1;
-    if(triangle.v2().x == triangle.v1().x) triangle.v2().x += 0.1;
+   // if(triangle.v0().x == triangle.v1().x) triangle.v0().x += 0.1;
+    //if(triangle.v2().x == triangle.v1().x) triangle.v2().x += 0.1;
 
     auto diff = (triangle.v2() - triangle.v0());
     float step = diff.y == 0 ? 0 : diff.x / diff.y;
@@ -188,39 +185,8 @@ void drawTextureTriangle(DrawingWindow &window, CanvasTriangle triangle, Texture
     auto mid = CanvasPoint(xMid, triangle.v1().y, convertToTex(glm::vec2(xMid, triangle.v1().y), triangle.v2(), triangle.v0()));
     mid.depth = interpolate(xMid, triangle.v0().x, triangle.v2().x, triangle.v0().depth, triangle.v2().depth);
 
-    // auto adiff = triangle.v1() - triangle.v0();
-    // float aStep = adiff.y == 0 ? 0 : adiff.x / adiff.y;
-    // for(float y = 0; y < triangle.v0().y - triangle.v1().y; y++) {
-    //     float ny = triangle.v1().y + y;
-    //     float from = xMid + step * y;
-    //     float to = triangle.v1().x + aStep * y;
-
-    //     glm::vec2 fromTex = convertToTex(glm::vec2(from, ny), triangle.v0(), mid);
-    //     glm::vec2 toTex = convertToTex(glm::vec2(to, ny), triangle.v0(), triangle.v1());
-
-    //     float fromZ = interpolate(ny, from, to, triangle.v0().depth, mid.depth);
-    //     float toZ = interpolate(ny, from, to, triangle.v0().depth, triangle.v1().depth);
-    //     drawTexLine(window, CanvasPoint(from, ny, fromZ, fromTex), CanvasPoint(to, ny, toZ, toTex), map, depthBuffer);
-    // }
-
     drawSimpleTexTriangle(window, step, false, triangle.v0(), triangle.v1(), mid, map, depthBuffer);
     drawSimpleTexTriangle(window, step, true, triangle.v1(), triangle.v2(), mid, map, depthBuffer);
-
-    // auto bdiff = triangle.v2() - triangle.v1();
-    // float bStep = bdiff.y == 0 ? 0 : bdiff.x / bdiff.y;
-
-    // for(float y = 0; y < triangle.v1().y - triangle.v2().y; y++) {
-    //     float ny = triangle.v2().y + y;
-    //     float from = triangle.v2().x + step * y;
-    //     float to = triangle.v2().x + bStep * y;
-
-    //     glm::vec2 fromTex = convertToTex(glm::vec2(from, ny), triangle.v2(), mid);
-    //     glm::vec2 toTex = convertToTex(glm::vec2(to, ny), triangle.v2(), triangle.v1());
-
-    //     float fromZ = interpolate(ny, from, to, triangle.v2().depth, mid.depth);
-    //     float toZ = interpolate(ny, from, to, triangle.v2().depth, triangle.v1().depth);
-    //     drawTexLine(window, CanvasPoint(from, ny, fromZ, fromTex), CanvasPoint(to, ny, toZ, toTex), map, depthBuffer);
-    // }
 }
 
 void drawDot(DrawingWindow &window, glm::vec2 pos, float size, Colour color) {
@@ -233,8 +199,12 @@ void drawDot(DrawingWindow &window, glm::vec2 pos, float size, Colour color) {
     }
 }
 
-CanvasPoint getCanvasIntersectionPoint(glm::vec3 vertexPos, glm::vec3 cameraPos, float focalLen, glm::vec2 viewportSize) {
-    auto relativePos = vertexPos - cameraPos;
+glm::vec4 vec3To4(glm::vec3 vec) {
+    return glm::vec4(vec.x, vec.y, vec.z, 1);
+}
+
+CanvasPoint getCanvasIntersectionPoint(glm::vec3 vertexPos, glm::mat4 cameraMatrix, float focalLen, glm::vec2 viewportSize) {
+    auto relativePos = cameraMatrix * vec3To4(vertexPos);
     glm::vec2 pos = (glm::vec2(-relativePos.x, relativePos.y) / relativePos.z) * focalLen + viewportSize / 2.0;
     return CanvasPoint(pos.x, pos.y, relativePos.z);
 }
@@ -333,18 +303,79 @@ vector<vector<float>> initDepthBuffer(int w, int h) {
 
 void clearDepthBuffer(vector<vector<float>> &buffer) {
     for(int y = 0; y < buffer.size(); y++) {
-        for(int x = 0; x < buffer[0].size(); x++) {
-            buffer[y][x] = 0;
-        }
+        std::fill(buffer[y].begin(), buffer[y].end(), 0);
     }
 }
 
 auto objs = loadOBJ("textured-cornell-box.obj", 0.25);
-glm::vec3 camPos(0, 0, 4);
 float f = 240*2;
 bool depthView = false;
+bool wireframeEnabled = false;
 float depthBrightness = 1;
 auto depthBuffer = initDepthBuffer(WIDTH, HEIGHT);
+glm::mat4 cameraMatrix = glm::mat4(
+    1, 0, 0, 0,
+    0, 1, 0, 0,
+    0, 0, 1, 0,
+    0, 0, -4, 1
+);
+
+glm::vec3 getPosFromMatrix(glm::mat4 matrix) {
+    return glm::vec3(matrix[0][3], matrix[1][3], matrix[2][3]);
+}
+
+glm::mat3 createRotationX(float angle) {
+    float cos = cosf(angle);
+    float sin = sinf(angle);
+    return glm::mat3(
+        1, 0,    0,
+        0, cos,  sin,
+        0, -sin, cos
+    );
+}
+
+glm::mat3 createRotationY(float angle) {
+    float cos = cosf(angle);
+    float sin = sinf(angle);
+    return glm::mat3(
+        cos,  0, sin,
+        0,    1, 0,
+        -sin, 0, cos
+    );
+}
+
+glm::mat3 createRotationZ(float angle) {
+    float cos = cosf(angle);
+    float sin = sinf(angle);
+    return glm::mat3(
+        cos, -sin, 0,
+        sin, cos,  0,
+        0,   0,    1
+    );
+}
+
+glm::mat4 mat3To4(glm::mat3 mat) {
+    return glm::mat4(
+        mat[0][0], mat[0][1], mat[0][2], 0,
+        mat[1][0], mat[1][1], mat[1][2], 0,
+        mat[2][0], mat[2][1], mat[2][2], 0,
+        0,         0,         0,         1
+    );
+} 
+
+glm::mat4 translationMatrix(glm::vec3 offset) {
+    return glm::mat4(
+        1, 0, 0, 0,
+        0, 1, 0, 0,
+        0, 0, 1, 0,
+        offset.x, offset.y, offset.z, 1
+    );
+}
+
+// glm::mat4 lookAt(glm::vec3 pos, glm::vec3 target) {
+//     auto forward = glm::normalize(target - pos);
+//     return glm::mat4(glm::normalize(glm::cross(forward, glm::vec3(0, 1, 0))), glm::normalize(glm::cross(forward, glm::vec3(-1, 0, 0))), -forward);
+// }
 
 void handleEvent(SDL_Event event, DrawingWindow &window) {
     if (event.type == SDL_KEYDOWN) {
@@ -352,10 +383,21 @@ void handleEvent(SDL_Event event, DrawingWindow &window) {
         else if (event.key.keysym.sym == SDLK_RIGHT) std::cout << "RIGHT" << std::endl;
         else if (event.key.keysym.sym == SDLK_UP) depthBrightness += 0.1;
         else if (event.key.keysym.sym == SDLK_DOWN) depthBrightness -= 0.1;
-        else if (event.key.keysym.sym == SDLK_d) depthView = !depthView;
+        else if (event.key.keysym.sym == SDLK_u) depthView = !depthView;
+        else if (event.key.keysym.sym == SDLK_y) wireframeEnabled = !wireframeEnabled;
+        else if (event.key.keysym.sym == SDLK_w) cameraMatrix *= translationMatrix(glm::vec3(0, 0, 0.1));
+        else if (event.key.keysym.sym == SDLK_s) cameraMatrix *= translationMatrix(glm::vec3(0, 0, -0.1));
+        else if (event.key.keysym.sym == SDLK_d) cameraMatrix *= translationMatrix(glm::vec3(0.1, 0, 0));
+        else if (event.key.keysym.sym == SDLK_a) cameraMatrix *= translationMatrix(glm::vec3(-0.1, 0, 0));
+        else if (event.key.keysym.sym == SDLK_q) cameraMatrix *= translationMatrix(glm::vec3(0, 0.1, 0));
+        else if (event.key.keysym.sym == SDLK_e) cameraMatrix *= translationMatrix(glm::vec3(0, -0.1, 0));
+        else if (event.key.keysym.sym == SDLK_j) cameraMatrix *= mat3To4(createRotationY(-0.1));
+        else if (event.key.keysym.sym == SDLK_l) cameraMatrix *= mat3To4(createRotationY(0.1));
+        else if (event.key.keysym.sym == SDLK_i) cameraMatrix *= mat3To4(createRotationX(0.1));
+        else if (event.key.keysym.sym == SDLK_k) cameraMatrix *= mat3To4(createRotationX(-0.1));
         //else if (event.key.keysym.sym == SDLK_u) drawTriangle(window, CanvasTriangle(randomPoint(window), randomPoint(window), randomPoint(window)), randomColor());
         //else if (event.key.keysym.sym == SDLK_f) drawFilledTriangle(window, CanvasTriangle(randomPoint(window), randomPoint(window), randomPoint(window)), randomColor());
-        else if (event.key.keysym.sym == SDLK_q) exit(0);
+        else if (event.key.keysym.sym == SDLK_x) exit(0);
     } else if (event.type == SDL_MOUSEBUTTONDOWN) {
         window.savePPM("output.ppm");
         window.saveBMP("output.bmp");
@@ -371,19 +413,37 @@ void drawDepthBuffer(DrawingWindow &window, vector<vector<float>> &depthBuffer) 
     }
 }
 
+void printMat3(glm::mat3 matrix) {
+    cout << matrix[0][0] << " " << matrix[0][1] << " " << matrix[0][2] << endl;
+    cout << matrix[1][0] << " " << matrix[1][1] << " " << matrix[1][2] << endl;
+    cout << matrix[2][0] << " " << matrix[2][1] << " " << matrix[2][2] << endl;
+}
+
+void printMat4(glm::mat4 matrix) {
+    cout << matrix[0][0] << " " << matrix[0][1] << " " << matrix[0][2] << " " << matrix[0][3] << endl;
+    cout << matrix[1][0] << " " << matrix[1][1] << " " << matrix[1][2] << " " << matrix[0][3] << endl;
+    cout << matrix[2][0] << " " << matrix[2][1] << " " << matrix[2][2] << " " << matrix[0][3] << endl;
+    cout << matrix[3][0] << " " << matrix[3][1] << " " << matrix[3][2] << " " << matrix[3][3] << endl;
+}
+
+
 void draw(DrawingWindow &window) {
     window.clearPixels();
     clearDepthBuffer(depthBuffer);
+    //printMat4(cameraMatrix);
+    //camPos = camPos * createRotationY(0.001);
+    //cameraOrientation = lookAt(getPosFromMatrix(cameraMatrix), glm::vec3(0, 0, 0));
+    //cout << glm::length(glm::cross(cameraOrientation[0], cameraOrientation[1]) - cameraOrientation[2]) << " " << glm::length(glm::cross(cameraOrientation[2], cameraOrientation[1]) - cameraOrientation[0]) << " " << glm::length(glm::cross(cameraOrientation[2], cameraOrientation[1]) - cameraOrientation[1]) << endl;
 
     glm::vec2 windowSize(WIDTH, HEIGHT);
     for(auto obj : objs) {
         //cout << obj.name << " " << (obj.texture.map.pixels.size()) << endl;
         for(auto t : obj.triangles) {
-            auto p1 = (getCanvasIntersectionPoint(t.vertices[0], camPos, f, windowSize));
+            auto p1 = (getCanvasIntersectionPoint(t.vertices[0], cameraMatrix, f, windowSize));
             p1.texturePoint = t.texturePoints[0];
-            auto p2 = (getCanvasIntersectionPoint(t.vertices[1], camPos, f, windowSize));
+            auto p2 = (getCanvasIntersectionPoint(t.vertices[1], cameraMatrix, f, windowSize));
             p2.texturePoint = t.texturePoints[1];
-            auto p3 = (getCanvasIntersectionPoint(t.vertices[2], camPos, f, windowSize));
+            auto p3 = (getCanvasIntersectionPoint(t.vertices[2], cameraMatrix, f, windowSize));
             p3.texturePoint = t.texturePoints[2];
 
             if(obj.texture.map.pixels.size() == 0) {
@@ -394,6 +454,16 @@ void draw(DrawingWindow &window) {
         }
     }
     if(depthView) drawDepthBuffer(window, depthBuffer);
+    if(wireframeEnabled) {
+        for(auto obj : objs) {
+            for(auto t : obj.triangles) {
+                auto p1 = (getCanvasIntersectionPoint(t.vertices[0], cameraMatrix, f, windowSize));
+                auto p2 = (getCanvasIntersectionPoint(t.vertices[1], cameraMatrix, f, windowSize));
+                auto p3 = (getCanvasIntersectionPoint(t.vertices[2], cameraMatrix, f, windowSize));
+                drawTriangle(window, CanvasTriangle(p1, p2, p3), Colour(255, 255, 255));
+            }
+        }
+    }
 }
 
 int main(int argc, char *argv[]) {
