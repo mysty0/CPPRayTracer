@@ -3,13 +3,11 @@
 #include <iostream>
 
 struct Colour {
-	std::string name;
-	int red{};
-	int green{};
-	int blue{};
+	uint8_t red{};
+	uint8_t green{};
+	uint8_t blue{};
 	Colour();
-	Colour(int r, int g, int b);
-	Colour(std::string n, int r, int g, int b);
+	Colour(uint8_t r, uint8_t g, uint8_t b);
 };
 
 std::ostream &operator<<(std::ostream &os, const Colour &colour);

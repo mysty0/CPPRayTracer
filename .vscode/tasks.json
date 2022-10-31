@@ -6,7 +6,7 @@
       {
         "label": "Run",
         "type": "shell",
-        "command": "make",
+        "command": "make build-debug",
         "presentation": {
           "reveal": "always",
           "panel": "new"

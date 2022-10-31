@@ -4,7 +4,7 @@
 ModelTriangle::ModelTriangle() = default;
 
 ModelTriangle::ModelTriangle(const glm::vec3 &v0, const glm::vec3 &v1, const glm::vec3 &v2, Colour trigColour) :
-		vertices({{v0, v1, v2}}), texturePoints(), colour(std::move(trigColour)), normal() {}
+		vertices({{v0, v1, v2}}), texturePoints(), colour(trigColour), normal() {}
 
 ModelTriangle::ModelTriangle(const glm::vec3 &v0, const glm::vec3 &v1, const glm::vec3 &v2, const glm::vec2 &v0t, const glm::vec2 &v1t, const glm::vec2 &v2t, Colour trigColour) :
 		vertices({{v0, v1, v2}}), texturePoints({{v0t, v1t, v2t}}), colour(std::move(trigColour)), normal() {}

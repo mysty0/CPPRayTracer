@@ -11,9 +11,10 @@
 #include <TextureMap.h>
 #include <ModelTriangle.h>
 #include <map>
+#include "TextRenderer.h"
 
-#define WIDTH 320
-#define HEIGHT 240
+#define WIDTH 1024
+#define HEIGHT 512
 
 using namespace std;
 
@@ -203,7 +204,14 @@ glm::vec4 vec3To4(glm::vec3 vec) {
     return glm::vec4(vec.x, vec.y, vec.z, 1);
 }
 
+glm::mat4 removeTranslation(glm::mat4 mat) {
+    glm::mat4 res = mat;
+    res[3] = glm::vec4(0, 0, 0, 1);
+    return res;
+}
+
 CanvasPoint getCanvasIntersectionPoint(glm::vec3 vertexPos, glm::mat4 cameraMatrix, float focalLen, glm::vec2 viewportSize) {
+   // auto relativePos = removeTranslation(cameraMatrix) * (vec3To4(vertexPos) - cameraMatrix[3]);
     auto relativePos = cameraMatrix * vec3To4(vertexPos);
     glm::vec2 pos = (glm::vec2(-relativePos.x, relativePos.y) / relativePos.z) * focalLen + viewportSize / 2.0;
     return CanvasPoint(pos.x, pos.y, relativePos.z);
@@ -272,10 +280,6 @@ vector<ModelObject> loadOBJ(string path, float scale = 1) {
             triangles.clear();
             name = tokens[1];
         }
-        // else if(ins == "o") {
-        //     vertices.clear();
-        //     cout << "clear" << endl;
-        // }
         else if(ins == "v") vertices.push_back(glm::vec3(stof(tokens[1]), stof(tokens[2]), stof(tokens[3])) * scale);
         else if(ins == "vt") textureMappings.push_back(glm::vec2(stof(tokens[1]) * tex.map.width, stof(tokens[2]) * tex.map.height));
         else if(ins == "f") {
@@ -286,6 +290,7 @@ vector<ModelObject> loadOBJ(string path, float scale = 1) {
                 triangles.push_back(ModelTriangle(vertices[stoi(x[0])-1], vertices[stoi(y[0])-1], vertices[stoi(z[0])-1], tex.color));
             else
                 triangles.push_back(ModelTriangle(vertices[stoi(x[0])-1], vertices[stoi(y[0])-1], vertices[stoi(z[0])-1], textureMappings[stoi(x[1])-1], textureMappings[stoi(y[1])-1], textureMappings[stoi(z[1])-1], tex.color));
+            
         }
     }
     objects.push_back({name, tex, triangles});
@@ -307,7 +312,7 @@ void clearDepthBuffer(vector<vector<float>> &buffer) {
     }
 }
 
-auto objs = loadOBJ("textured-cornell-box.obj", 0.25);
+vector<ModelObject> objs = loadOBJ("textured-cornell-box.obj", 0.25);
 float f = 240*2;
 bool depthView = false;
 bool wireframeEnabled = false;
@@ -466,6 +471,11 @@ void draw(DrawingWindow &window) {
     }
 }
 
+void drawOverlay(DrawingWindow& window) {
+    text::renderText(window.renderer, glm::vec2(), "123", Colour(255, 255,255));
+
+}
+
 int main(int argc, char *argv[]) {
     DrawingWindow window = DrawingWindow(WIDTH, HEIGHT, false);
     SDL_Event event;
@@ -479,12 +489,14 @@ int main(int argc, char *argv[]) {
 
     //v0 (21, 165, 0) 1[401, 212] v1 (21, 95, 0) 1[141, 6] v2 (294, 4, 0) 1[198, 305]
     //drawTextureTriangle(window, CanvasTriangle(CanvasPoint(21, 165, glm::vec2(401, 212)), CanvasPoint(21, 95, glm::vec2(401, 6)), CanvasPoint(294, 4, glm::vec2(198, 305))), map, depthBuffer);
-
+    
     while (true) {
         // We MUST poll for events - otherwise the window will freeze !
         if (window.pollForInputEvents(event)) handleEvent(event, window);
         draw(window);
         // Need to render the frame at the end, or nothing actually gets shown on the screen !
         window.renderFrame();
+        drawOverlay(window);
+        window.finishRender();
     }
 }

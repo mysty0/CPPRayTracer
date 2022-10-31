@@ -25,9 +25,12 @@ DrawingWindow::DrawingWindow(int w, int h, bool fullscreen) : width(w), height(h
 }
 
 void DrawingWindow::renderFrame() {
-	SDL_UpdateTexture(texture, nullptr, pixelBuffer.data(), width * sizeof(uint32_t));
 	SDL_RenderClear(renderer);
+	SDL_UpdateTexture(texture, nullptr, pixelBuffer.data(), width * sizeof(uint32_t));
 	SDL_RenderCopy(renderer, texture, nullptr, nullptr);
+}
+
+void DrawingWindow::finishRender() {
 	SDL_RenderPresent(renderer);
 }
 

@@ -76,6 +76,9 @@
         "algorithm": "cpp",
         "functional": "cpp",
         "iterator": "cpp",
-        "utility": "cpp"
+        "utility": "cpp",
+        "filesystem": "cpp",
+        "__tree": "cpp",
+        "map": "cpp"
     }
 }

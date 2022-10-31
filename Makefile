@@ -28,7 +28,7 @@ GLM_COMPILER_FLAGS := -I$(GLM_DIR)
 SDL_COMPILER_FLAGS := $(shell sdl2-config --cflags)
 # If you have a manual install of SDL, you might not have sdl2-config installed, so the following line might not work
 # Linker flags should look something like: -L/usr/local/lib -lSDL2
-SDL_LINKER_FLAGS := $(shell sdl2-config --libs)
+SDL_LINKER_FLAGS := $(shell sdl2-config --libs) -lSDL2_ttf
 SDW_LINKER_FLAGS := $(SDW_OBJECT_FILES)
 
 default: debug
@@ -38,6 +38,10 @@ debug: $(SDW_OBJECT_FILES)
 	$(COMPILER) $(COMPILER_OPTIONS) $(DEBUG_OPTIONS) -o $(OBJECT_FILE) $(SOURCE_FILE) $(SDL_COMPILER_FLAGS) $(SDW_COMPILER_FLAGS) $(GLM_COMPILER_FLAGS)
 	$(COMPILER) $(LINKER_OPTIONS) $(DEBUG_OPTIONS) -o $(EXECUTABLE) $(OBJECT_FILE) $(SDW_LINKER_FLAGS) $(SDL_LINKER_FLAGS)
 	./$(EXECUTABLE)
+
+build-debug: $(SDW_OBJECT_FILES)
+	$(COMPILER) $(COMPILER_OPTIONS) $(DEBUG_OPTIONS) -o $(OBJECT_FILE) $(SOURCE_FILE) $(SDL_COMPILER_FLAGS) $(SDW_COMPILER_FLAGS) $(GLM_COMPILER_FLAGS)
+	$(COMPILER) $(LINKER_OPTIONS) $(DEBUG_OPTIONS) -o $(EXECUTABLE) $(OBJECT_FILE) $(SDW_LINKER_FLAGS) $(SDL_LINKER_FLAGS)
 
 # Rule to help find runtime errors (when you get a segmentation fault)
 # NOTE: This needs the "Address Sanitizer" library to be installed in order to work (so it might not work on lab machines !)
