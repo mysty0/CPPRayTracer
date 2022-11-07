@@ -19,11 +19,11 @@ namespace renderer2d {
 
     void drawLine(DrawingWindow &window, CanvasPoint from, CanvasPoint to, Colour color) {
         auto diff = to - from;
-        float numberOfSteps = fmax(abs(diff.x), abs(diff.y));
+        float numberOfSteps = floor(fmax(abs(diff.x), abs(diff.y)));
         auto stepSize = diff / numberOfSteps;
         for(float i = 0.0; i < numberOfSteps; i++) {
             auto point = from + stepSize * i;
-            window.setPixelColour(round(point.x), round(point.y), encodeColor(color));
+            window.setPixelColour(floor(point.x), floor(point.y), encodeColor(color));
         }
     }
 
@@ -35,7 +35,7 @@ namespace renderer2d {
             auto point = from + stepSize * i;
             auto x = round(point.x);
             auto y = round(point.y);
-            auto z = -1.0/point.depth;
+            auto z = -point.depth;
             if(y > 0 && x > 0 && y < depthBuffer.size() && x < depthBuffer[y].size() && z > depthBuffer[y][x]) {
                 window.setPixelColour(x, y, encodeColor(color));
                 depthBuffer[y][x] = z;
@@ -92,6 +92,52 @@ namespace renderer2d {
         }
         // drawTriangle(window, CanvasTriangle(triangle.v0(), triangle.v1(), CanvasPoint(xMid, triangle.v1().y)), Colour(255, 255, 255));
         // drawTriangle(window, CanvasTriangle(triangle.v2(), triangle.v1(), CanvasPoint(xMid, triangle.v1().y)), Colour(255, 255, 255));
+    }
+
+    void drawSimpleTriangle(DrawingWindow &window, float step, bool bottomPart, CanvasPoint top, CanvasPoint bottom, CanvasPoint mid, Colour color, vector<vector<float>> &depthBuffer) {
+        auto adiff = bottom - top;
+        float aStep = adiff.y == 0 ? 0 : adiff.x / adiff.y;
+
+        float initX = mid.x;
+        if(bottomPart) initX = bottom.x;
+        auto initPos = bottom;
+
+        float len = top.y - bottom.y;
+
+        if(bottomPart) std::swap(top, bottom);
+        for(float y = 0; y < len; y++) {
+            float ny = initPos.y + y;
+            float from = initX + step * y;
+            float to = initPos.x + aStep * y;
+
+            float fromZ = interpolate(from, top.x, mid.x, 1/top.depth, mid.depth);
+            float toZ = interpolate(to, top.x, bottom.x, 1/top.depth, 1/bottom.depth);
+            drawDepthLine(window, CanvasPoint(from, ny, fromZ), CanvasPoint(to, ny, toZ), color, depthBuffer);
+        }
+        if(bottomPart) std::swap(top, bottom);
+    }
+
+    void drawTriangle(DrawingWindow &window, CanvasTriangle triangle, Colour color, vector<vector<float>> &depthBuffer) {
+        if(triangle.v0().y < triangle.v1().y)
+            std::swap(triangle.vertices[0], triangle.vertices[1]);
+        
+        if(triangle.v0().y < triangle.v2().y) 
+            std::swap(triangle.vertices[0], triangle.vertices[2]);
+        
+        if(triangle.v1().y < triangle.v2().y) 
+            std::swap(triangle.vertices[1], triangle.vertices[2]);
+
+    // if(triangle.v0().x == triangle.v1().x) triangle.v0().x += 0.1;
+        //if(triangle.v2().x == triangle.v1().x) triangle.v2().x += 0.1;
+
+        auto diff = (triangle.v2() - triangle.v0());
+        float step = diff.y == 0 ? 0 : diff.x / diff.y;
+        float xMid = triangle.v0().x + step * (triangle.v1().y - triangle.v0().y);
+        auto mid = CanvasPoint(xMid, triangle.v1().y);
+        mid.depth = interpolate(triangle.v1().y, triangle.v0().y, triangle.v2().y, 1/triangle.v0().depth, 1/triangle.v2().depth);
+
+        drawSimpleTriangle(window, step, false, triangle.v0(), triangle.v1(), mid, color, depthBuffer);
+        drawSimpleTriangle(window, step, true, triangle.v1(), triangle.v2(), mid, color, depthBuffer);
     }
 
     void drawSimpleTexTriangle(DrawingWindow &window, float step, bool bottomPart, CanvasPoint top, CanvasPoint bottom, CanvasPoint mid, TextureMap &map, vector<vector<float>> &depthBuffer) {

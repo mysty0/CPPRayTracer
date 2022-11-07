@@ -43,7 +43,7 @@ class Renderer3d {
                 p3.texturePoint = t.texturePoints[2];
 
                 if(obj.texture.map.pixels.size() == 0) {
-                    renderer2d::drawFilledTriangle(window, CanvasTriangle(p1, p2, p3), t.colour, depthBuffer);
+                    renderer2d::drawTriangle(window, CanvasTriangle(p1, p2, p3), t.colour, depthBuffer);
                 } else {
                     renderer2d::drawTextureTriangle(window, CanvasTriangle(p1, p2, p3), obj.texture.map, depthBuffer);
                 }

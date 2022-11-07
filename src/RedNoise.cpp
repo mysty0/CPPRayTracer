@@ -32,7 +32,7 @@ class Application {
 
     public:
     Application() {
-        objs = loader::loadOBJ("textured-cornell-box.obj", 0.25);
+        objs = loader::loadOBJ("cornell-box.obj", 0.25);
         windowSize = glm::vec2(WIDTH, HEIGHT);
         renderer = unique_ptr<Renderer3d>(new Renderer3d(window, cameraMatrix, f, windowSize));
     }
@@ -73,7 +73,7 @@ class Application {
         window.clearPixels();
         renderer->clearDepthBuffer();
         //printMat4(cameraMatrix);
-        cameraMatrix[3] = cameraMatrix[3] * mat3To4(createRotationY(0.001));
+        //cameraMatrix[3] = cameraMatrix[3] * mat3To4(createRotationY(0.001));
         //cameraOrientation = lookAt(getPosFromMatrix(cameraMatrix), glm::vec3(0, 0, 0));
         //cout << glm::length(glm::cross(cameraOrientation[0], cameraOrientation[1]) - cameraOrientation[2]) << " " << glm::length(glm::cross(cameraOrientation[2], cameraOrientation[1]) - cameraOrientation[0]) << " " << glm::length(glm::cross(cameraOrientation[2], cameraOrientation[1]) - cameraOrientation[1]) << endl;
 
