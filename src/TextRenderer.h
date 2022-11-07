@@ -2,6 +2,8 @@
 #include <SDL2/SDL.h>
 #include "Colour.h"
 #include "DrawingWindow.h"
+#pragma once
+
 #include <glm/glm.hpp>
 
 namespace text {
