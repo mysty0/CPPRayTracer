@@ -8,7 +8,7 @@ class Renderer3d {
     glm::mat4& cameraMatrix;
     float& f;
     glm::vec2& windowSize;
-    vector<vector<float>>  depthBuffer;
+    vector<vector<float>> depthBuffer;
 
     private:
     vector<vector<float>> initDepthBuffer(int w, int h) {
