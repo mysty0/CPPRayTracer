@@ -12,6 +12,7 @@
 #include <ModelTriangle.h>
 #include <map>
 #include "TextRenderer.h"
+#include <sstream>
 
 #define WIDTH 1024
 #define HEIGHT 512
@@ -211,8 +212,7 @@ glm::mat4 removeTranslation(glm::mat4 mat) {
 }
 
 CanvasPoint getCanvasIntersectionPoint(glm::vec3 vertexPos, glm::mat4 cameraMatrix, float focalLen, glm::vec2 viewportSize) {
-   // auto relativePos = removeTranslation(cameraMatrix) * (vec3To4(vertexPos) - cameraMatrix[3]);
-    auto relativePos = cameraMatrix * vec3To4(vertexPos);
+    auto relativePos = removeTranslation(cameraMatrix) * (vec3To4(vertexPos) + cameraMatrix[3]);
     glm::vec2 pos = (glm::vec2(-relativePos.x, relativePos.y) / relativePos.z) * focalLen + viewportSize / 2.0;
     return CanvasPoint(pos.x, pos.y, relativePos.z);
 }
@@ -436,7 +436,7 @@ void draw(DrawingWindow &window) {
     window.clearPixels();
     clearDepthBuffer(depthBuffer);
     //printMat4(cameraMatrix);
-    //camPos = camPos * createRotationY(0.001);
+    cameraMatrix[3] = cameraMatrix[3] * mat3To4(createRotationY(0.001));
     //cameraOrientation = lookAt(getPosFromMatrix(cameraMatrix), glm::vec3(0, 0, 0));
     //cout << glm::length(glm::cross(cameraOrientation[0], cameraOrientation[1]) - cameraOrientation[2]) << " " << glm::length(glm::cross(cameraOrientation[2], cameraOrientation[1]) - cameraOrientation[0]) << " " << glm::length(glm::cross(cameraOrientation[2], cameraOrientation[1]) - cameraOrientation[1]) << endl;
 
@@ -471,9 +471,24 @@ void draw(DrawingWindow &window) {
     }
 }
 
+void displayMat4(DrawingWindow& window, glm::vec2 pos, glm::mat4 matrix) {
+    std::ostringstream ss("");
+    ss << std::fixed << std::setprecision(3) << matrix[0][0] << " " << matrix[0][1] << " " << matrix[0][2] << " " << matrix[0][3];
+    auto r = text::renderText(window.renderer, pos, ss.str().c_str(), Colour(255, 255,255));
+    ss.str(std::string());
+    ss << matrix[1][0] << " " << matrix[1][1] << " " << matrix[1][2] << " " << matrix[0][3];
+    r = text::renderText(window.renderer, glm::vec2(r.x, r.y + r.h), ss.str().c_str(), Colour(255, 255,255));
+    ss.str(std::string());
+    ss << matrix[2][0] << " " << matrix[2][1] << " " << matrix[2][2] << " " << matrix[0][3];
+    r = text::renderText(window.renderer, glm::vec2(r.x, r.y + r.h), ss.str().c_str(), Colour(255, 255,255));
+    ss.str(std::string());
+    ss << matrix[3][0] << " " << matrix[3][1] << " " << matrix[3][2] << " " << matrix[3][3];
+    text::renderText(window.renderer, glm::vec2(r.x, r.y + r.h), ss.str().c_str(), Colour(255, 255,255));
+}
+
 void drawOverlay(DrawingWindow& window) {
     text::renderText(window.renderer, glm::vec2(), "123", Colour(255, 255,255));
-
+    displayMat4(window, glm::vec2(0, 30), cameraMatrix);
 }
 
 int main(int argc, char *argv[]) {
