@@ -32,7 +32,7 @@ class Application {
 
     public:
     Application() {
-        objs = loader::loadOBJ("cornell-box.obj", 0.25);
+        objs = loader::loadOBJ("textured-cornell-box.obj", 0.25);
         windowSize = glm::vec2(WIDTH, HEIGHT);
         renderer = unique_ptr<Renderer3d>(new Renderer3d(window, cameraMatrix, f, windowSize));
     }

@@ -51,9 +51,7 @@ namespace renderer2d {
             auto point = from + stepSize * i;
             auto x = round(point.x);
             auto y = round(point.y);
-            auto z = -1.0/point.depth;
-            //cout << z << endl;
-
+            auto z = -point.depth;
             if(y > 0 && x > 0 && y < depthBuffer.size() && x < depthBuffer[y].size() && z >= depthBuffer[y][x]) {
                 window.setPixelColour(x, y, map.point(floor(point.texturePoint.x), floor(point.texturePoint.y)));
                 depthBuffer[y][x] = z;
@@ -158,8 +156,8 @@ namespace renderer2d {
 
             glm::vec2 fromTex = convertToTex(glm::vec2(from, ny), top, mid);
             glm::vec2 toTex = convertToTex(glm::vec2(to, ny), top, bottom);
-            float fromZ = interpolate(from, top.x, mid.x, top.depth, mid.depth);
-            float toZ = interpolate(to, top.x, bottom.x, top.depth, bottom.depth);
+            float fromZ = interpolate(from, top.x, mid.x, 1/top.depth, mid.depth);
+            float toZ = interpolate(to, top.x, bottom.x, 1/top.depth, 1/bottom.depth);
             drawTexLine(window, CanvasPoint(from, ny, fromZ, fromTex), CanvasPoint(to, ny, toZ, toTex), map, depthBuffer);
         }
         if(bottomPart) std::swap(top, bottom);
@@ -182,7 +180,7 @@ namespace renderer2d {
         float step = diff.y == 0 ? 0 : diff.x / diff.y;
         float xMid = triangle.v0().x + step * (triangle.v1().y - triangle.v0().y);
         auto mid = CanvasPoint(xMid, triangle.v1().y, convertToTex(glm::vec2(xMid, triangle.v1().y), triangle.v2(), triangle.v0()));
-        mid.depth = interpolate(xMid, triangle.v0().x, triangle.v2().x, triangle.v0().depth, triangle.v2().depth);
+        mid.depth = interpolate(xMid, triangle.v0().x, triangle.v2().x, 1/triangle.v0().depth, 1/triangle.v2().depth);
 
         drawSimpleTexTriangle(window, step, false, triangle.v0(), triangle.v1(), mid, map, depthBuffer);
         drawSimpleTexTriangle(window, step, true, triangle.v1(), triangle.v2(), mid, map, depthBuffer);
