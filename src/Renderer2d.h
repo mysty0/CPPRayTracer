@@ -29,12 +29,12 @@ namespace renderer2d {
 
     void drawDepthLine(DrawingWindow &window, CanvasPoint from, CanvasPoint to, Colour color, vector<vector<float>> &depthBuffer) {
         auto diff = to - from;
-        float numberOfSteps = fmax(abs(diff.x), abs(diff.y));
+        float numberOfSteps = ceil(fmax(abs(diff.x), abs(diff.y)));
         auto stepSize = diff / numberOfSteps;
-        for(float i = 0.0; i < numberOfSteps; i++) {
+        for(float i = -1.0; i < numberOfSteps+1; i++) {
             auto point = from + stepSize * i;
-            auto x = round(point.x);
-            auto y = round(point.y);
+            auto x = floor(point.x);
+            auto y = floor(point.y);
             auto z = -point.depth;
             if(y > 0 && x > 0 && y < depthBuffer.size() && x < depthBuffer[y].size() && z > depthBuffer[y][x]) {
                 window.setPixelColour(x, y, encodeColor(color));
@@ -45,12 +45,12 @@ namespace renderer2d {
 
     void drawTexLine(DrawingWindow &window, CanvasPoint from, CanvasPoint to, TextureMap &map, vector<vector<float>> &depthBuffer) {
         auto diff = to - from;
-        float numberOfSteps = fmax(abs(diff.x), abs(diff.y));
+        float numberOfSteps = ceil(fmax(abs(diff.x), abs(diff.y)));
         auto stepSize = diff / numberOfSteps;
         for(float i = 0.0; i < numberOfSteps; i++) {
             auto point = from + stepSize * i;
-            auto x = round(point.x);
-            auto y = round(point.y);
+            auto x = floor(point.x);
+            auto y = floor(point.y);
             auto z = -point.depth;
             if(y > 0 && x > 0 && y < depthBuffer.size() && x < depthBuffer[y].size() && z >= depthBuffer[y][x]) {
                 window.setPixelColour(x, y, map.point(floor(point.texturePoint.x), floor(point.texturePoint.y)));
