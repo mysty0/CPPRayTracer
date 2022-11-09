@@ -32,9 +32,9 @@ class Renderer3d {
     }
 
     void renderObjects(vector<ModelObject> &objs) {
-        for(auto obj : objs) {
+        for(auto const &obj : objs) {
             //cout << obj.name << " " << (obj.texture.map.pixels.size()) << endl;
-            for(auto t : obj.triangles) {
+            for(auto const &t : obj.triangles) {
                 auto p1 = (getCanvasIntersectionPoint(t.vertices[0], cameraMatrix, f, windowSize));
                 p1.texturePoint = t.texturePoints[0];
                 auto p2 = (getCanvasIntersectionPoint(t.vertices[1], cameraMatrix, f, windowSize));

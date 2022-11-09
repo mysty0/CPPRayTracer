@@ -47,3 +47,7 @@ CanvasPoint randomPointWithTexture(DrawingWindow &window, TextureMap& map) {
 glm::vec4 vec3To4(glm::vec3 vec) {
     return glm::vec4(vec.x, vec.y, vec.z, 1);
 }
+
+glm::vec3 vec4To3(glm::vec4 vec) {
+    return glm::vec3(vec.x, vec.y, vec.z);
+}

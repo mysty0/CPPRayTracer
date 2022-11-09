@@ -34,7 +34,7 @@ std::ostream &operator<<(std::ostream &os, const TextureMap &map) {
 	return os;
 }
 
-uint32_t TextureMap::point(size_t x, size_t y) {
+uint32_t TextureMap::point(size_t x, size_t y) const {
 	if(x >= width || y >= height) {
 		//std::cout << x << "," << y << " out of texture bounds" << std::endl;
 		return 0;
