@@ -7,8 +7,8 @@
 #include <sstream>
 #include "Loader.h"
 #include "Renderer3d.h"
+#include "RendererRT.h"
 #include <memory>
-#include <RayTriangleIntersection.h>
 #include <ctime>
 
 //#define WIDTH 1024
@@ -18,6 +18,8 @@
 #define HEIGHT 240
 
 using namespace std;
+
+enum RenderType { wireframe, raster, raytracing };
 
 class Application {
     vector<ModelObject> objs;
@@ -34,6 +36,9 @@ class Application {
     DrawingWindow window = DrawingWindow(WIDTH, HEIGHT, false);
     glm::vec2 windowSize;
     unique_ptr<Renderer3d> renderer;
+    unique_ptr<RendererRT> rendererRT;
+    glm::vec3 light = glm::vec3(0.0, 0.3, 0.7);
+    RenderType renderType = RenderType::raytracing;
 
     clock_t fps = 0;
 
@@ -42,6 +47,7 @@ class Application {
         objs = loader::loadOBJ("textured-cornell-box.obj", 0.25);
         windowSize = glm::vec2(WIDTH, HEIGHT);
         renderer = unique_ptr<Renderer3d>(new Renderer3d(window, cameraMatrix, f, windowSize));
+        rendererRT = unique_ptr<RendererRT>(new RendererRT(window, cameraMatrix, f, windowSize));
     }
 
     // glm::mat4 lookAt(glm::vec3 pos, glm::vec3 target) {
@@ -67,6 +73,7 @@ class Application {
             else if (event.key.keysym.sym == SDLK_l) cameraMatrix *= mat3To4(createRotationY(0.1));
             else if (event.key.keysym.sym == SDLK_i) cameraMatrix *= mat3To4(createRotationX(0.1));
             else if (event.key.keysym.sym == SDLK_k) cameraMatrix *= mat3To4(createRotationX(-0.1));
+            else if (event.key.keysym.sym == SDLK_f) renderType = static_cast<RenderType>((renderType + 1) % 3);
             //else if (event.key.keysym.sym == SDLK_u) drawTriangle(window, CanvasTriangle(randomPoint(window), randomPoint(window), randomPoint(window)), randomColor());
             //else if (event.key.keysym.sym == SDLK_f) drawFilledTriangle(window, CanvasTriangle(randomPoint(window), randomPoint(window), randomPoint(window)), randomColor());
             else if (event.key.keysym.sym == SDLK_x) exit(0);
@@ -76,35 +83,7 @@ class Application {
         }
     }
 
-    RayTriangleIntersection getClosestIntersection(vector<ModelObject> &objs, glm::vec3 cameraPosition, glm::vec3 rayDirection) {
-        RayTriangleIntersection inter;
-        float minDst = -1;
-        
-       //cout << glm::to_string(cameraPosition) << " " << glm::to_string(rayDirection) << endl;
 
-        for(auto const &obj : objs) {
-            //cout << obj.name << endl;
-            for(auto const &triangle : obj.triangles) {
-                glm::vec3 e0 = triangle.vertices[1] - triangle.vertices[0];
-                glm::vec3 e1 = triangle.vertices[2] - triangle.vertices[0];
-                glm::vec3 sp = cameraPosition - triangle.vertices[0];
-                glm::mat3 de(-rayDirection, e0, e1);
-                glm::vec3 possibleSolution = glm::inverse(de) * sp;
-                //cout << glm::to_string(triangle.vertices[0]) << endl;
-                //cout << "s0 " << possibleSolution.x << " " << possibleSolution.y << " " << possibleSolution.z << endl;
-                if((minDst > possibleSolution.x || minDst < 0) && possibleSolution.x >= 0) {
-                    //cout << "s1 " << possibleSolution.x << " " << possibleSolution.y << " " << possibleSolution.z << endl;
-                    if(possibleSolution.y >= 0 && possibleSolution.z >= 0 && possibleSolution.y + possibleSolution.z <= 1) {
-                        minDst = possibleSolution.x;
-
-                        //cout << "found  " << obj.name << " " << minDst << endl;
-                        inter = RayTriangleIntersection(triangle.vertices[0] + e0 * possibleSolution.y + e1 * possibleSolution.z, minDst, triangle, 0);
-                    }
-                }
-            }
-        }
-        return inter;
-    }
 
     void draw(DrawingWindow &window) {
         window.clearPixels();
@@ -117,20 +96,34 @@ class Application {
 
         //renderer->renderObjects(objs);
         //return;
-        auto cameraRot = removeTranslation(cameraMatrix);
-        auto camPos = vec4To3(cameraMatrix[3])*glm::vec3(1,1,-1);
-        for(int y = 0; y < window.height; y++) {
-            for(int x = 0; x < window.width; x++) {
-               // cout << x - window.width/2 << " " << y - window.height/2 << endl;
-                auto intr = getClosestIntersection(objs, camPos, glm::normalize(vec4To3(cameraRot * glm::vec4(x - (int)window.width/2, y - (int)window.height/2, -f, 1))));
-                window.setPixelColour(x, window.height-y-1, encodeColor(intr.intersectedTriangle.colour));
-            }
+        switch (renderType)
+        {
+        case RenderType::wireframe:
+            renderer->renderWireframe(objs);
+            break;
+
+        case RenderType::raster:
+            renderer->renderObjects(objs);
+            break;
+
+        case RenderType::raytracing:
+            rendererRT->renderObjects(objs, light);
+            break;
+        
+        default:
+            break;
         }
         
         if(depthView) renderer->drawDepthBuffer(window, depthBrightness);
         if(wireframeEnabled) {
             renderer->renderWireframe(objs);
         }
+    }
+
+    void displayVec3(DrawingWindow& window, glm::vec2 pos, glm::vec3 vec) {
+        std::ostringstream ss("");
+        ss << std::fixed << std::setprecision(3) << vec.x << " " << vec.y << " " << vec.z;
+        text::renderText(window.renderer, pos, ss.str().c_str(), Colour(255, 255,255));
     }
 
     void displayMat4(DrawingWindow& window, glm::vec2 pos, glm::mat4 matrix) {
@@ -151,7 +144,9 @@ class Application {
     void drawOverlay(DrawingWindow& window) {
         text::renderText(window.renderer, glm::vec2(), "123", Colour(255, 255,255));
         text::renderText(window.renderer, glm::vec2(0,15), std::to_string(fps).c_str(), Colour(255, 255,255));
+
         displayMat4(window, glm::vec2(0, 30), cameraMatrix);
+        displayVec3(window, glm::vec2(0, 100), light);
     }
 
     void run() {

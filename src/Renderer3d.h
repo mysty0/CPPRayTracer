@@ -5,9 +5,9 @@
 
 class Renderer3d {
     DrawingWindow &window;
-    glm::mat4& cameraMatrix;
-    float& f;
-    glm::vec2& windowSize;
+    const glm::mat4& cameraMatrix;
+    const float& f;
+    const glm::vec2& windowSize;
     vector<vector<float>> depthBuffer;
 
     private:
@@ -20,12 +20,12 @@ class Renderer3d {
     }
 
     public:
-    Renderer3d(DrawingWindow &window, glm::mat4 &cameraMatrix, float &f, glm::vec2 &windowSize) 
+    Renderer3d(DrawingWindow &window, const glm::mat4 &cameraMatrix, const float &f, const glm::vec2 &windowSize) 
         : window(window), cameraMatrix(cameraMatrix), f(f), windowSize(windowSize) {
         depthBuffer = initDepthBuffer(windowSize.x, windowSize.y);
     }
 
-    CanvasPoint getCanvasIntersectionPoint(glm::vec3 vertexPos, glm::mat4 cameraMatrix, float focalLen, glm::vec2 viewportSize) {
+    CanvasPoint getCanvasIntersectionPoint(const glm::vec3 &vertexPos, const glm::mat4 &cameraMatrix, float focalLen, const glm::vec2 &viewportSize) {
         auto relativePos = removeTranslation(cameraMatrix) * (vec3To4(vertexPos) + cameraMatrix[3]);
         glm::vec2 pos = (glm::vec2(-relativePos.x, relativePos.y) / relativePos.z) * focalLen + viewportSize / 2.0;
         return CanvasPoint(pos.x, pos.y, relativePos.z);
@@ -52,8 +52,8 @@ class Renderer3d {
     }
 
     void renderWireframe(vector<ModelObject> &objs) {
-        for(auto obj : objs) {
-            for(auto t : obj.triangles) {
+        for(auto const & obj : objs) {
+            for(auto const & t : obj.triangles) {
                 auto p1 = (getCanvasIntersectionPoint(t.vertices[0], cameraMatrix, f, windowSize));
                 auto p2 = (getCanvasIntersectionPoint(t.vertices[1], cameraMatrix, f, windowSize));
                 auto p3 = (getCanvasIntersectionPoint(t.vertices[2], cameraMatrix, f, windowSize));

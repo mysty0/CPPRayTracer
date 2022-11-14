@@ -8,3 +8,4 @@
 #include <TextureMap.h>
 #include <ModelTriangle.h>
 #include <DrawingWindow.h>
+#include <RayTriangleIntersection.h>
