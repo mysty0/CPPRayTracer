@@ -16,12 +16,12 @@
 using namespace std;
 
 struct ObjectTexture {
-    Colour color{};
+    glm::vec3 color{};
     TextureMap map{};
 
     ObjectTexture() {};
-    ObjectTexture(Colour color, TextureMap map) : color(color), map(map) {};
-    ObjectTexture(Colour color) : color(color) {};
+    ObjectTexture(glm::vec3 color, TextureMap map) : color(color), map(map) {};
+    ObjectTexture(glm::vec3 color) : color(color) {};
     ObjectTexture(TextureMap map) : map(map) {};
 };
 

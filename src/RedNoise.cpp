@@ -38,6 +38,7 @@ class Application {
     unique_ptr<Renderer3d> renderer;
     unique_ptr<RendererRT> rendererRT;
     glm::vec3 light = glm::vec3(0.0, 0.3, 0.7);
+    float lightStrength = 5;
     RenderType renderType = RenderType::raytracing;
 
     clock_t fps = 0;
@@ -74,16 +75,22 @@ class Application {
             else if (event.key.keysym.sym == SDLK_i) cameraMatrix *= mat3To4(createRotationX(0.1));
             else if (event.key.keysym.sym == SDLK_k) cameraMatrix *= mat3To4(createRotationX(-0.1));
             else if (event.key.keysym.sym == SDLK_f) renderType = static_cast<RenderType>((renderType + 1) % 3);
+            else if (event.key.keysym.sym == SDLK_LEFTBRACKET) lightStrength -= 1;
+            else if (event.key.keysym.sym == SDLK_RIGHTBRACKET) lightStrength += 1;
+            else if (event.key.keysym.sym == SDLK_n) light.y -= 0.1;
+            else if (event.key.keysym.sym == SDLK_m) light.y += 0.1;
+            else if (event.key.keysym.sym == SDLK_b) light.x += 0.1;
+            else if (event.key.keysym.sym == SDLK_v) light.x -= 0.1;
+            else if (event.key.keysym.sym == SDLK_z) light.z -= 0.1;
+            else if (event.key.keysym.sym == SDLK_x) light.z += 0.1;
             //else if (event.key.keysym.sym == SDLK_u) drawTriangle(window, CanvasTriangle(randomPoint(window), randomPoint(window), randomPoint(window)), randomColor());
             //else if (event.key.keysym.sym == SDLK_f) drawFilledTriangle(window, CanvasTriangle(randomPoint(window), randomPoint(window), randomPoint(window)), randomColor());
-            else if (event.key.keysym.sym == SDLK_x) exit(0);
+            //else if (event.key.keysym.sym == SDLK_x) exit(0);
         } else if (event.type == SDL_MOUSEBUTTONDOWN) {
             window.savePPM("output.ppm");
             window.saveBMP("output.bmp");
         }
     }
-
-
 
     void draw(DrawingWindow &window) {
         window.clearPixels();
@@ -107,7 +114,7 @@ class Application {
             break;
 
         case RenderType::raytracing:
-            rendererRT->renderObjects(objs, light);
+            rendererRT->renderObjects(objs, light, lightStrength);
             break;
         
         default:
@@ -145,8 +152,8 @@ class Application {
         text::renderText(window.renderer, glm::vec2(), "123", Colour(255, 255,255));
         text::renderText(window.renderer, glm::vec2(0,15), std::to_string(fps).c_str(), Colour(255, 255,255));
 
-        displayMat4(window, glm::vec2(0, 30), cameraMatrix);
-        displayVec3(window, glm::vec2(0, 100), light);
+        // displayMat4(window, glm::vec2(0, 30), cameraMatrix);
+        // displayVec3(window, glm::vec2(0, 100), light);
     }
 
     void run() {

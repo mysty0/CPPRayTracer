@@ -17,7 +17,7 @@ namespace renderer2d {
         return interpolate(x, start.vec2(), end.vec2(), start.texturePoint, end.texturePoint);
     }
 
-    void drawLine(DrawingWindow &window, CanvasPoint from, CanvasPoint to, Colour color) {
+    void drawLine(DrawingWindow &window, CanvasPoint from, CanvasPoint to, glm::vec3 color) {
         auto diff = to - from;
         float numberOfSteps = floor(fmax(abs(diff.x), abs(diff.y)));
         auto stepSize = diff / numberOfSteps;
@@ -27,7 +27,7 @@ namespace renderer2d {
         }
     }
 
-    void drawDepthLine(DrawingWindow &window, CanvasPoint from, CanvasPoint to, Colour color, vector<vector<float>> &depthBuffer) {
+    void drawDepthLine(DrawingWindow &window, CanvasPoint from, CanvasPoint to, glm::vec3 color, vector<vector<float>> &depthBuffer) {
         auto diff = to - from;
         float numberOfSteps = ceil(fmax(abs(diff.x), abs(diff.y)));
         auto stepSize = diff / numberOfSteps;
@@ -59,13 +59,13 @@ namespace renderer2d {
         }
     }
 
-    void drawTriangle(DrawingWindow &window, CanvasTriangle triangle, Colour color) {
+    void drawTriangle(DrawingWindow &window, CanvasTriangle triangle, glm::vec3 color) {
         drawLine(window, triangle.v0(), triangle.v1(), color);
         drawLine(window, triangle.v1(), triangle.v2(), color);
         drawLine(window, triangle.v2(), triangle.v0(), color);
     }
 
-    void drawFilledTriangle(DrawingWindow &window, CanvasTriangle triangle, Colour color, vector<vector<float>> &depthBuffer) {
+    void drawFilledTriangle(DrawingWindow &window, CanvasTriangle triangle, glm::vec3  color, vector<vector<float>> &depthBuffer) {
         if(triangle.v0().y < triangle.v1().y) 
             std::swap(triangle.vertices[0], triangle.vertices[1]);
         
@@ -92,7 +92,7 @@ namespace renderer2d {
         // drawTriangle(window, CanvasTriangle(triangle.v2(), triangle.v1(), CanvasPoint(xMid, triangle.v1().y)), Colour(255, 255, 255));
     }
 
-    void drawSimpleTriangle(DrawingWindow &window, float step, bool bottomPart, CanvasPoint top, CanvasPoint bottom, CanvasPoint mid, Colour color, vector<vector<float>> &depthBuffer) {
+    void drawSimpleTriangle(DrawingWindow &window, float step, bool bottomPart, CanvasPoint top, CanvasPoint bottom, CanvasPoint mid, glm::vec3 color, vector<vector<float>> &depthBuffer) {
         auto adiff = bottom - top;
         float aStep = adiff.y == 0 ? 0 : adiff.x / adiff.y;
 
@@ -115,7 +115,7 @@ namespace renderer2d {
         if(bottomPart) std::swap(top, bottom);
     }
 
-    void drawTriangle(DrawingWindow &window, CanvasTriangle triangle, Colour color, vector<vector<float>> &depthBuffer) {
+    void drawTriangle(DrawingWindow &window, CanvasTriangle triangle, glm::vec3 color, vector<vector<float>> &depthBuffer) {
         if(triangle.v0().y < triangle.v1().y)
             std::swap(triangle.vertices[0], triangle.vertices[1]);
         
@@ -186,7 +186,7 @@ namespace renderer2d {
         drawSimpleTexTriangle(window, step, true, triangle.v1(), triangle.v2(), mid, map, depthBuffer);
     }
 
-    void drawDot(DrawingWindow &window, glm::vec2 pos, float size, Colour color) {
+    void drawDot(DrawingWindow &window, glm::vec2 pos, float size, glm::vec3 color) {
         for(int x = 0; x < size; x++) {
             for(int y = 0; y < size; y++) {
                 if(glm::length2(glm::vec2(x, y) - size/2) <= size) {

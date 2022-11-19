@@ -11,3 +11,7 @@ std::ostream &operator<<(std::ostream &os, const Colour &colour) {
 	   << colour.blue << "]";
 	return os;
 }
+
+Colour operator*(const Colour &a, float x) { 
+	return Colour(a.red * x, a.green * x, a.blue * x);
+}

@@ -30,7 +30,7 @@ namespace loader {
             auto tokens = split(nextLine, ' ');
             auto ins = tokens[0];
             if(ins == "newmtl") name = tokens[1];
-            if(ins == "Kd") mat[name] = ObjectTexture(Colour(stof(tokens[1]) * 255, stof(tokens[2]) * 255, stof(tokens[3]) * 255));
+            if(ins == "Kd") mat[name] = ObjectTexture(glm::vec3(stof(tokens[1]), stof(tokens[2]), stof(tokens[3])));
             if(ins == "map_Kd") mat[name] = ObjectTexture(mat[name].color, TextureMap(tokens[1]));
         }
 
@@ -67,11 +67,14 @@ namespace loader {
                 auto x = split(tokens[1], '/');
                 auto y = split(tokens[2], '/');
                 auto z = split(tokens[3], '/');
+                ModelTriangle triang;
                 if(x[1].size() == 0)
-                    triangles.push_back(ModelTriangle(vertices[stoi(x[0])-1], vertices[stoi(y[0])-1], vertices[stoi(z[0])-1], tex.color));
+                    triang = ModelTriangle(vertices[stoi(x[0])-1], vertices[stoi(y[0])-1], vertices[stoi(z[0])-1], tex.color);
                 else
-                    triangles.push_back(ModelTriangle(vertices[stoi(x[0])-1], vertices[stoi(y[0])-1], vertices[stoi(z[0])-1], textureMappings[stoi(x[1])-1], textureMappings[stoi(y[1])-1], textureMappings[stoi(z[1])-1], tex.color));
-                
+                    triang = ModelTriangle(vertices[stoi(x[0])-1], vertices[stoi(y[0])-1], vertices[stoi(z[0])-1], textureMappings[stoi(x[1])-1], textureMappings[stoi(y[1])-1], textureMappings[stoi(z[1])-1], tex.color);
+
+                triang.recalculateNormal();
+                triangles.push_back(triang);
             }
         }
         objects.push_back({name, tex, triangles});

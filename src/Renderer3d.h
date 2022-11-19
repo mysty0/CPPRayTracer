@@ -25,7 +25,7 @@ class Renderer3d {
         depthBuffer = initDepthBuffer(windowSize.x, windowSize.y);
     }
 
-    CanvasPoint getCanvasIntersectionPoint(const glm::vec3 &vertexPos, const glm::mat4 &cameraMatrix, float focalLen, const glm::vec2 &viewportSize) {
+    static CanvasPoint getCanvasIntersectionPoint(const glm::vec3 &vertexPos, const glm::mat4 &cameraMatrix, float focalLen, const glm::vec2 &viewportSize) {
         auto relativePos = removeTranslation(cameraMatrix) * (vec3To4(vertexPos) + cameraMatrix[3]);
         glm::vec2 pos = (glm::vec2(-relativePos.x, relativePos.y) / relativePos.z) * focalLen + viewportSize / 2.0;
         return CanvasPoint(pos.x, pos.y, relativePos.z);
@@ -57,7 +57,7 @@ class Renderer3d {
                 auto p1 = (getCanvasIntersectionPoint(t.vertices[0], cameraMatrix, f, windowSize));
                 auto p2 = (getCanvasIntersectionPoint(t.vertices[1], cameraMatrix, f, windowSize));
                 auto p3 = (getCanvasIntersectionPoint(t.vertices[2], cameraMatrix, f, windowSize));
-                renderer2d::drawTriangle(window, CanvasTriangle(p1, p2, p3), Colour(255, 255, 255));
+                renderer2d::drawTriangle(window, CanvasTriangle(p1, p2, p3), glm::vec3(1));
             }
         }
     }
