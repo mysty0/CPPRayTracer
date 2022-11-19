@@ -2,6 +2,14 @@
 
 #include "Common.h"
 
+struct Light {
+    glm::vec3 position;
+    float intensity;
+    float diffusionFactor;
+    float inclineFactor;
+    float specularFactor;
+};
+
 class RendererRT {
     DrawingWindow &window;
     const glm::mat4& cameraMatrix;
@@ -12,7 +20,7 @@ class RendererRT {
     RendererRT(DrawingWindow &window, const glm::mat4 &cameraMatrix, const float &f, const glm::vec2 &windowSize) 
         : window(window), cameraMatrix(cameraMatrix), f(f), windowSize(windowSize) {}
 
-    void renderObjects(vector<ModelObject> &objs, glm::vec3 light, float lightStrength) {
+    void renderObjects(vector<ModelObject> &objs, Light light) {
         auto cameraRot = removeTranslation(cameraMatrix);
         auto camPos = vec4To3(cameraMatrix[3])*glm::vec3(1,1,-1);
         for(int y = 0; y < window.height; y++) {
@@ -21,18 +29,18 @@ class RendererRT {
                 auto ray = glm::normalize(vec4To3(cameraRot * glm::vec4(x - (int)window.width/2, y - (int)window.height/2, -f, 1)));
                 auto intr = getClosestIntersection(objs, camPos, ray);
                 if(intr.intersectedTriangle != nullptr) {
-                    auto lightIntr = checkIntersection(objs, intr.intersectionPoint, light - intr.intersectionPoint);
+                    auto lightIntr = checkIntersection(objs, intr.intersectionPoint, light.position - intr.intersectionPoint);
                     if(false) {
                         window.setPixelColour(x, window.height-y-1, 0);
                     } else { 
-                        auto intensity = glm::pi<float>()*4*glm::distance2(intr.intersectionPoint, light);
-                        auto lightDir = -light-intr.intersectionPoint;
+                        auto intensity = glm::pi<float>()*glm::distance2(intr.intersectionPoint, light.position)*light.inclineFactor;
+                        auto lightDir = -light.position-intr.intersectionPoint;
                         auto normal = intr.intersectedTriangle->normal;
-                        auto diffuse = glm::clamp(glm::dot(normal, -lightDir), 0.f, 1.0f) * 0.1f;
+                        auto diffuse = glm::clamp(glm::dot(normal, -lightDir), 0.f, 1.0f)*light.diffusionFactor;
                         auto reflect = glm::normalize(lightDir - 2.f * normal * (glm::dot(lightDir, normal)));
-                        auto specular = glm::pow(glm::clamp(glm::dot(reflect, ray), 0.f, 1.0f), 256.f)*1.f;
+                        auto specular = glm::pow(glm::clamp(glm::dot(reflect, ray), 0.f, 1.0f), 256.f)*light.specularFactor;
                         //cout << glm::to_string(light) << " " << glm::to_string(intr->intersectedTriangle.normal) << " " << glm::dot(light, intr->intersectedTriangle.normal) << endl;
-                        window.setPixelColour(x, window.height-y-1, encodeColor(intr.intersectedTriangle->colour * (lightStrength/intensity) + diffuse + specular));
+                        window.setPixelColour(x, window.height-y-1, encodeColor(intr.intersectedTriangle->colour * (light.intensity/intensity) + diffuse + specular));
                     }
 
                 } else {
@@ -40,7 +48,7 @@ class RendererRT {
                 }
             }
         }
-        auto lightPos = Renderer3d::getCanvasIntersectionPoint(light, cameraMatrix, f, windowSize);
+        auto lightPos = Renderer3d::getCanvasIntersectionPoint(light.position, cameraMatrix, f, windowSize);
         renderer2d::drawDot(window, lightPos.vec2(), 5, glm::vec3(255));
     }
 
