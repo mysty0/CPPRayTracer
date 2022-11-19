@@ -10,6 +10,9 @@
 #include "RendererRT.h"
 #include <memory>
 #include <ctime>
+#include <iomanip>
+#include "Overlay.h"
+#include "SettingsUI.h"
 
 //#define WIDTH 1024
 //#define HEIGHT 512
@@ -19,7 +22,7 @@
 
 using namespace std;
 
-enum RenderType { wireframe, raster, raytracing };
+enum RenderType { wireframe = 0, raster, raytracing };
 
 class Application {
     vector<ModelObject> objs;
@@ -37,18 +40,22 @@ class Application {
     glm::vec2 windowSize;
     unique_ptr<Renderer3d> renderer;
     unique_ptr<RendererRT> rendererRT;
-    glm::vec3 light = glm::vec3(0.0, 0.3, 0.7);
+    unique_ptr<Overlay> overlay;
+    Light light = { glm::vec3(0.0, 0.3, 0.7), 5.f, 0.1f, 4.f, 0.5f };
     float lightStrength = 5;
     RenderType renderType = RenderType::raytracing;
+
+    SettingsUI settings = SettingsUI(light);
 
     clock_t fps = 0;
 
     public:
     Application() {
-        objs = loader::loadOBJ("textured-cornell-box.obj", 0.25);
+        objs = loader::loadOBJ("../../../textured-cornell-box.obj", 0.25);
         windowSize = glm::vec2(WIDTH, HEIGHT);
         renderer = unique_ptr<Renderer3d>(new Renderer3d(window, cameraMatrix, f, windowSize));
         rendererRT = unique_ptr<RendererRT>(new RendererRT(window, cameraMatrix, f, windowSize));
+        overlay = unique_ptr<Overlay>(new Overlay(window));
     }
 
     // glm::mat4 lookAt(glm::vec3 pos, glm::vec3 target) {
@@ -77,12 +84,13 @@ class Application {
             else if (event.key.keysym.sym == SDLK_f) renderType = static_cast<RenderType>((renderType + 1) % 3);
             else if (event.key.keysym.sym == SDLK_LEFTBRACKET) lightStrength -= 1;
             else if (event.key.keysym.sym == SDLK_RIGHTBRACKET) lightStrength += 1;
-            else if (event.key.keysym.sym == SDLK_n) light.y -= 0.1;
-            else if (event.key.keysym.sym == SDLK_m) light.y += 0.1;
-            else if (event.key.keysym.sym == SDLK_b) light.x += 0.1;
-            else if (event.key.keysym.sym == SDLK_v) light.x -= 0.1;
-            else if (event.key.keysym.sym == SDLK_z) light.z -= 0.1;
-            else if (event.key.keysym.sym == SDLK_x) light.z += 0.1;
+            else if (event.key.keysym.sym == SDLK_n) light.position.y -= 0.1;
+            else if (event.key.keysym.sym == SDLK_m) light.position.y += 0.1;
+            else if (event.key.keysym.sym == SDLK_b) light.position.x += 0.1;
+            else if (event.key.keysym.sym == SDLK_v) light.position.x -= 0.1;
+            else if (event.key.keysym.sym == SDLK_z) light.position.z -= 0.1;
+            else if (event.key.keysym.sym == SDLK_x) light.position.z += 0.1;
+            settings.handleKeyPress(event);
             //else if (event.key.keysym.sym == SDLK_u) drawTriangle(window, CanvasTriangle(randomPoint(window), randomPoint(window), randomPoint(window)), randomColor());
             //else if (event.key.keysym.sym == SDLK_f) drawFilledTriangle(window, CanvasTriangle(randomPoint(window), randomPoint(window), randomPoint(window)), randomColor());
             //else if (event.key.keysym.sym == SDLK_x) exit(0);
@@ -114,7 +122,7 @@ class Application {
             break;
 
         case RenderType::raytracing:
-            rendererRT->renderObjects(objs, light, lightStrength);
+            rendererRT->renderObjects(objs, light);
             break;
         
         default:
@@ -149,14 +157,23 @@ class Application {
     }
 
     void drawOverlay(DrawingWindow& window) {
-        text::renderText(window.renderer, glm::vec2(), "123", Colour(255, 255,255));
-        text::renderText(window.renderer, glm::vec2(0,15), std::to_string(fps).c_str(), Colour(255, 255,255));
+        //text::renderText(window.renderer, glm::vec2(), "123", Colour(255, 255,255));
+        //text::renderText(window.renderer, glm::vec2(0,15), std::to_string(fps).c_str(), Colour(255, 255,255));
+
+        auto ctx = overlay->resetContext();
+        overlay::setFont(ctx, "../../../Roboto-Regular.ttf", 12);
+        overlay::column(ctx, [this, &ctx] {
+            overlay::text(ctx, "123", glm::vec3(255));
+            overlay::text(ctx, string_format("fps: %d", fps), glm::vec3(255));
+            this->settings.drawOverlay(ctx);
+        });
 
         // displayMat4(window, glm::vec2(0, 30), cameraMatrix);
         // displayVec3(window, glm::vec2(0, 100), light);
     }
 
     void run() {
+        cout << "start" << endl;
         SDL_Event event;
 
         //auto intr = getClosestIntersection(objs, glm::vec3(0,0,-4), glm::normalize(vec4To3(glm::vec4(0 , 0, f, 1))));
@@ -192,4 +209,5 @@ int main(int argc, char *argv[]) {
 
     //v0 (21, 165, 0) 1[401, 212] v1 (21, 95, 0) 1[141, 6] v2 (294, 4, 0) 1[198, 305]
     //drawTextureTriangle(window, CanvasTriangle(CanvasPoint(21, 165, glm::vec2(401, 212)), CanvasPoint(21, 95, glm::vec2(401, 6)), CanvasPoint(294, 4, glm::vec2(198, 305))), map, depthBuffer);
+    return 0;
 }

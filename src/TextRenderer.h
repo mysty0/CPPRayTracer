@@ -1,13 +1,15 @@
-#include <SDL2/SDL_ttf.h>
-#include <SDL2/SDL.h>
+#pragma once
+
+//#include <SDL2/SDL_ttf.h>
+#include "SDL.h"
+#include "SDL_ttf.h"
 #include "Colour.h"
 #include "DrawingWindow.h"
-#pragma once
 
 #include <glm/glm.hpp>
 
 namespace text {
-    const char* FONT_NAME = "Roboto-Regular.ttf";
+    const char* FONT_NAME = "../../../Roboto-Regular.ttf";
 
     SDL_Rect renderText(SDL_Renderer* renderer, glm::vec2 position, const char* text, Colour color) {
         TTF_Init();

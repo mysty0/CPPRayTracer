@@ -15,15 +15,20 @@ cmake_minimum_required(VERSION 3.12)
 project(RedNoise)
 
 set(CMAKE_CXX_STANDARD 14)
-set(CMAKE_CXX_COMPILER "/usr/local/opt/llvm/bin/clang++")
+#set(CMAKE_CXX_COMPILER "/usr/local/opt/llvm/bin/clang++")
 
 # Note, we do this for glm because it's a header only library and because we shipped it with the project
 # normally you would use find_package(<package_name>) for libraries with actual objects
 set(GLM_INCLUDE_DIRS libs/glm-0.9.7.2)
 
-find_package(SDL2 REQUIRED)
+#set(SDL2_DIR "D:/downloads/SDL2-2.24.2/cmake")
+#set(SDL_TTF_LIBRARIES "D:/downloads/SDL2_ttf-2.20.1/lib")
+#set(SDL_TTF_INCLUDE_DIRS "D:/libs/SDL2_ttf-2.20.1/include")
 
-include_directories(${SDL2_INCLUDE_DIRS} ${GLM_INCLUDE_DIRS})
+find_package(SDL2 REQUIRED)
+find_package(SDL2_ttf REQUIRED)
+
+include_directories(${SDL2_INCLUDE_DIRS} ${GLM_INCLUDE_DIRS} ${SDL2_TTF_INCLUDE_DIRS})
 include_directories(libs/sdw)
 
 add_executable(RedNoise
@@ -36,7 +41,7 @@ add_executable(RedNoise
         libs/sdw/TextureMap.cpp
         libs/sdw/TexturePoint.cpp
         libs/sdw/Utils.cpp
-        src/RedNoise.cpp)
+        src/RedNoise.cpp "src/SettingsUI.h")
 
 if (MSVC)
     target_compile_options(RedNoise
@@ -48,6 +53,10 @@ if (MSVC)
     set(RELEASE_OPTIONS /MT /GF /Gy /O2 /fp:fast)
     if (NOT DEFINED SDL2_LIBRARIES)
         set(SDL2_LIBRARIES SDL2::SDL2 SDL2::SDL2main)
+    endif()
+
+    if (NOT DEFINED SDL2_TTF_LIBRARIES)
+        set(SDL2_TTF_LIBRARIES SDL2_ttf::SDL2_ttf)
     endif()
 else ()
     target_compile_options(RedNoise
@@ -67,9 +76,9 @@ else ()
 
 endif()
 
-
 target_compile_options(RedNoise PUBLIC "$<$<CONFIG:RelWithDebInfo>:${RELEASE_OPTIONS}>")
 target_compile_options(RedNoise PUBLIC "$<$<CONFIG:Release>:${RELEASE_OPTIONS}>")
 target_compile_options(RedNoise PUBLIC "$<$<CONFIG:Debug>:${DEBUG_OPTIONS}>")
  
-target_link_libraries(RedNoise PRIVATE ${SDL2_LIBRARIES})
+target_link_libraries(RedNoise PRIVATE ${SDL2_LIBRARIES} ${SDL2_TTF_LIBRARIES})
+

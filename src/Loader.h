@@ -14,6 +14,18 @@
 #include <map>
 #include "Models.h"
 
+#ifdef _WIN32
+#include <direct.h>
+// MSDN recommends against using getcwd & chdir names
+#define cwd _getcwd
+#define cd _chdir
+#else
+#include "unistd.h"
+#define cwd getcwd
+#define cd chdir
+#endif
+
+
 using namespace std;
 
 namespace loader {
@@ -24,7 +36,7 @@ namespace loader {
         string nextLine;
         string name;
 
-        while(!inputStream.eof()) {
+        while(inputStream.good() && !inputStream.eof()) {
             std::getline(inputStream, nextLine);
             if(nextLine.size() == 0) continue;
             auto tokens = split(nextLine, ' ');
@@ -49,7 +61,11 @@ namespace loader {
         vector<ModelTriangle> triangles;
         string name;
 
-        while(!inputStream.eof()) {
+        char buf[4096];
+        auto oldCwd = cwd(buf, sizeof(buf));
+        cd(path.substr(0, path.find_last_of("\\/")).c_str());
+
+        while(inputStream.good() && !inputStream.eof()) {
             std::getline(inputStream, nextLine);
             if(nextLine.size() == 0) continue;
             auto tokens = split(nextLine, ' ');
@@ -78,6 +94,8 @@ namespace loader {
             }
         }
         objects.push_back({name, tex, triangles});
+
+        cd(oldCwd);
 
         return objects;
     }
