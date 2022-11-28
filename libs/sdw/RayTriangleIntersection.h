@@ -10,8 +10,10 @@ struct RayTriangleIntersection {
 	float distanceFromCamera;
 	const ModelTriangle* intersectedTriangle = nullptr;
 	size_t triangleIndex;
+	float e1;
+	float e2;
 
 	RayTriangleIntersection();
-	RayTriangleIntersection(const glm::vec3 &point, float distance, const ModelTriangle *triangle, size_t index);
+	RayTriangleIntersection(const glm::vec3 &point, float distance, float e1, float e2, const ModelTriangle *triangle, size_t index);
 	friend std::ostream &operator<<(std::ostream &os, const RayTriangleIntersection &intersection);
 };

@@ -29,6 +29,26 @@ public:
 	}
 };
 
+class IntMenuItem : public MenuItem {
+	std::string name;
+	int& value;
+	int changeStep;
+public:
+	IntMenuItem(std::string name, int& value, int step = 1) : name(name), value(value), changeStep(step) {};
+
+	std::string text() {
+		return string_format("%s: %d", name, value);
+	}
+
+	void increase() {
+		value += changeStep;
+	}
+
+	void decrease() {
+		value -= changeStep;
+	}
+};
+
 class BoolMenuItem : public MenuItem {
 	std::string name;
 	bool& value;

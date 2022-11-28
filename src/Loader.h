@@ -49,7 +49,7 @@ namespace loader {
         return mat;
     }
 
-    vector<ModelObject> loadOBJ(string path, float scale = 1) {
+    vector<ModelObject> loadOBJ(string path, float scale = 1, glm::vec3 defaultColor = glm::vec3()) {
         vector<ModelObject> objects;
 
         ifstream inputStream(path);
@@ -57,15 +57,26 @@ namespace loader {
         vector<glm::vec3> vertices;
         vector<glm::vec2> textureMappings;
         map<string, ObjectTexture> mat;
-        ObjectTexture tex;
+        ObjectTexture tex(defaultColor);
         vector<ModelTriangle> triangles;
         vector<array<int, 3>> trianglesVertexIndexes;
         string name;
         std::vector<glm::vec3> vertexNormals;
 
+        auto recalcVertexNormals = [&]() {
+            for (int i = 0; i < triangles.size(); i++) {
+                for (int v = 0; v < 3; v++) {
+                    auto n = vertexNormals[trianglesVertexIndexes[i][v]];
+                    triangles[i].vertexNormals[v] = glm::normalize(n / glm::length(n));
+                    cout << glm::to_string(triangles[i].vertexNormals[v]) << endl;
+                }
+            }
+        };
+
         char buf[4096];
         auto oldCwd = cwd(buf, sizeof(buf));
         cd(path.substr(0, path.find_last_of("\\/")).c_str());
+
 
 
         while(inputStream.good() && !inputStream.eof()) {
@@ -76,11 +87,7 @@ namespace loader {
             if(ins == "mtllib") mat = loadMTL(tokens[1]);
             else if(ins == "usemtl") tex = mat[tokens[1]];
             else if(ins == "o") {
-                for (int i = 0; i < triangles.size(); i++) {
-                    triangles[i].vertexNormals[0] = vertexNormals[trianglesVertexIndexes[i][0]];
-                    triangles[i].vertexNormals[1] = vertexNormals[trianglesVertexIndexes[i][1]];
-                    triangles[i].vertexNormals[2] = vertexNormals[trianglesVertexIndexes[i][2]];
-                }
+                recalcVertexNormals();
 
                 objects.push_back({name, tex, triangles});
                 triangles.clear();
@@ -116,6 +123,7 @@ namespace loader {
                 vertexNormals[v3] += triang.normal;
             }
         }
+        recalcVertexNormals();
         objects.push_back({name, tex, triangles});
 
         cd(oldCwd);

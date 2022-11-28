@@ -17,8 +17,8 @@
 //#define WIDTH 1024
 //#define HEIGHT 512
 
-#define WIDTH 320
-#define HEIGHT 240
+#define WIDTH 640
+#define HEIGHT 480
 
 using namespace std;
 
@@ -26,6 +26,8 @@ enum RenderType { wireframe = 0, raster, raytracing };
 
 class Application {
     vector<ModelObject> objs;
+    vector<ModelTriangle> modelTriangles;
+
     float f = 240*2;
     bool depthView = false;
     bool overlayEnabled = true;
@@ -50,17 +52,25 @@ class Application {
 
     SettingsUI settings;
 
+    clock_t current_ticks, delta_ticks;
     clock_t fps = 0;
 
     public:
     Application() {
-        objs = loader::loadOBJ("../../../cornell-box.obj", 0.25);
+        objs = loader::loadOBJ("../../../sphere.obj", 1, glm::vec3(1, 0, 0));//loader::loadOBJ("../../../cornell-box.obj", 0.25);
+        for (const auto& obj : objs) {
+            for (const auto& triangle : obj.triangles) {
+                modelTriangles.push_back(triangle);
+            }
+        }
+
         windowSize = glm::vec2(WIDTH, HEIGHT);
         renderer = make_unique<Renderer3d>(window, cameraMatrix, f, windowSize);
         rendererRT = make_unique<RendererRT>(window, cameraMatrix, f, windowSize, debugPoint);
         overlay = make_unique<Overlay>(window);
 
         vector<unique_ptr<MenuItem>> items;
+        items.push_back(make_unique<IntMenuItem>("threads", rendererRT->threadNumber));
         items.push_back(make_unique<FloatMenuItem>("light x", light.position.x));
         items.push_back(make_unique<FloatMenuItem>("light y", light.position.y));
         items.push_back(make_unique<FloatMenuItem>("light z", light.position.z));
@@ -108,9 +118,6 @@ class Application {
             else if (event.key.keysym.sym == SDLK_z) light.position.z -= 0.1;
             else if (event.key.keysym.sym == SDLK_x) light.position.z += 0.1;
             settings.handleKeyPress(event);
-            //else if (event.key.keysym.sym == SDLK_u) drawTriangle(window, CanvasTriangle(randomPoint(window), randomPoint(window), randomPoint(window)), randomColor());
-            //else if (event.key.keysym.sym == SDLK_f) drawFilledTriangle(window, CanvasTriangle(randomPoint(window), randomPoint(window), randomPoint(window)), randomColor());
-            //else if (event.key.keysym.sym == SDLK_x) exit(0);
         } else if (event.type == SDL_MOUSEBUTTONDOWN) {
             window.savePPM("output.ppm");
             window.saveBMP("output.bmp");
@@ -121,7 +128,6 @@ class Application {
 
     void draw(DrawingWindow &window) {
         window.clearPixels();
-        renderer->clearDepthBuffer();
         
         //printMat4(cameraMatrix);
         //cameraMatrix[3] = cameraMatrix[3] * mat3To4(createRotationY(0.01));
@@ -137,11 +143,12 @@ class Application {
             break;
 
         case RenderType::raster:
+            renderer->clearDepthBuffer();
             renderer->renderObjects(objs);
             break;
 
         case RenderType::raytracing:
-            rendererRT->renderObjects(objs, light);
+            rendererRT->renderObjects(modelTriangles, light);
             break;
         
         default:
@@ -200,7 +207,7 @@ class Application {
         auto ctx = overlay->resetContext();
         overlay::column(ctx, [this, &ctx] {
             //overlay::text(ctx, "123", glm::vec3(255));
-            overlay::text(ctx, string_format("fps: %d", fps), glm::vec3(255));
+            overlay::text(ctx, string_format("fps: %d, ticks: %d", fps, delta_ticks), glm::vec3(255));
             this->settings.drawOverlay(ctx);
             overlay::text(ctx, string_format("debugPoint: %i %i", debugPoint.x, debugPoint.y), glm::vec3(255));
         });
@@ -212,10 +219,6 @@ class Application {
     void run() {
         cout << "start" << endl;
         SDL_Event event;
-
-        //auto intr = getClosestIntersection(objs, glm::vec3(0,0,-4), glm::normalize(vec4To3(glm::vec4(0 , 0, f, 1))));
-        
-        clock_t current_ticks, delta_ticks;
 
         auto ctx = overlay->resetContext();
         overlay::setFont(ctx, "../../../Roboto-Regular.ttf", 12);
