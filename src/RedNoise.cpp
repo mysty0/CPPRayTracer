@@ -28,6 +28,8 @@ class Application {
     vector<ModelObject> objs;
     float f = 240*2;
     bool depthView = false;
+    bool overlayEnabled = true;
+    bool normalsOverlayEnabled = false;
     bool wireframeEnabled = false;
     float depthBrightness = 1;
     glm::mat4 cameraMatrix = glm::mat4(
@@ -41,21 +43,36 @@ class Application {
     unique_ptr<Renderer3d> renderer;
     unique_ptr<RendererRT> rendererRT;
     unique_ptr<Overlay> overlay;
-    Light light = { glm::vec3(0.0, 0.3, 0.7), 5.f, 0.1f, 4.f, 0.5f };
+    Light light = { glm::vec3(0.0, 0.3, 0.7), 5.f, 2.1f, 4.f, 0.5f, 256.f, 0.1f };
     float lightStrength = 5;
     RenderType renderType = RenderType::raytracing;
+    glm::ivec2 debugPoint = glm::ivec2(0);
 
-    SettingsUI settings = SettingsUI(light);
+    SettingsUI settings;
 
     clock_t fps = 0;
 
     public:
     Application() {
-        objs = loader::loadOBJ("../../../textured-cornell-box.obj", 0.25);
+        objs = loader::loadOBJ("../../../cornell-box.obj", 0.25);
         windowSize = glm::vec2(WIDTH, HEIGHT);
-        renderer = unique_ptr<Renderer3d>(new Renderer3d(window, cameraMatrix, f, windowSize));
-        rendererRT = unique_ptr<RendererRT>(new RendererRT(window, cameraMatrix, f, windowSize));
-        overlay = unique_ptr<Overlay>(new Overlay(window));
+        renderer = make_unique<Renderer3d>(window, cameraMatrix, f, windowSize);
+        rendererRT = make_unique<RendererRT>(window, cameraMatrix, f, windowSize, debugPoint);
+        overlay = make_unique<Overlay>(window);
+
+        vector<unique_ptr<MenuItem>> items;
+        items.push_back(make_unique<FloatMenuItem>("light x", light.position.x));
+        items.push_back(make_unique<FloatMenuItem>("light y", light.position.y));
+        items.push_back(make_unique<FloatMenuItem>("light z", light.position.z));
+        items.push_back(make_unique<FloatMenuItem>("light intesity", light.intensity));
+        items.push_back(make_unique<FloatMenuItem>("diffusionFactor", light.diffusionFactor));
+        items.push_back(make_unique<FloatMenuItem>("inclineFactor", light.inclineFactor));
+        items.push_back(make_unique<FloatMenuItem>("specularFactor", light.specularFactor));
+        items.push_back(make_unique<FloatMenuItem>("specularExp", light.specularExp, 20.f));
+        items.push_back(make_unique<FloatMenuItem>("ambientMin", light.ambientMin));
+        items.push_back(make_unique<BoolMenuItem>("overlayEnabled", overlayEnabled));
+        items.push_back(make_unique<BoolMenuItem>("normalsOvrEnabd", normalsOverlayEnabled));
+        settings = SettingsUI(move(items));
     }
 
     // glm::mat4 lookAt(glm::vec3 pos, glm::vec3 target) {
@@ -97,6 +114,8 @@ class Application {
         } else if (event.type == SDL_MOUSEBUTTONDOWN) {
             window.savePPM("output.ppm");
             window.saveBMP("output.bmp");
+
+            SDL_GetMouseState(&debugPoint.x, &debugPoint.y);
         }
     }
 
@@ -127,6 +146,24 @@ class Application {
         
         default:
             break;
+        }
+
+        if (overlayEnabled) {
+            auto lightPos = Renderer3d::getCanvasIntersectionPoint(light.position, cameraMatrix, f, windowSize);
+            renderer2d::drawDot(window, lightPos.vec2(), 5, glm::vec3(255));
+
+            if (normalsOverlayEnabled) {
+                for (auto const& obj : objs) {
+                    for (auto const& triangle : obj.triangles) {
+                        for (int i = 0; i < 3; i++) {
+                            auto start = Renderer3d::getCanvasIntersectionPoint(triangle.vertices[i], cameraMatrix, f, windowSize);
+                            auto end = Renderer3d::getCanvasIntersectionPoint(triangle.vertices[i] + triangle.normal / 10.f, cameraMatrix, f, windowSize);
+
+                            renderer2d::drawLine(window, start, end, glm::vec3(255));
+                        }
+                    }
+                }
+            }
         }
         
         if(depthView) renderer->drawDepthBuffer(window, depthBrightness);
@@ -161,11 +198,11 @@ class Application {
         //text::renderText(window.renderer, glm::vec2(0,15), std::to_string(fps).c_str(), Colour(255, 255,255));
 
         auto ctx = overlay->resetContext();
-        overlay::setFont(ctx, "../../../Roboto-Regular.ttf", 12);
         overlay::column(ctx, [this, &ctx] {
-            overlay::text(ctx, "123", glm::vec3(255));
+            //overlay::text(ctx, "123", glm::vec3(255));
             overlay::text(ctx, string_format("fps: %d", fps), glm::vec3(255));
             this->settings.drawOverlay(ctx);
+            overlay::text(ctx, string_format("debugPoint: %i %i", debugPoint.x, debugPoint.y), glm::vec3(255));
         });
 
         // displayMat4(window, glm::vec2(0, 30), cameraMatrix);
@@ -179,6 +216,9 @@ class Application {
         //auto intr = getClosestIntersection(objs, glm::vec3(0,0,-4), glm::normalize(vec4To3(glm::vec4(0 , 0, f, 1))));
         
         clock_t current_ticks, delta_ticks;
+
+        auto ctx = overlay->resetContext();
+        overlay::setFont(ctx, "../../../Roboto-Regular.ttf", 12);
 
         while (true) {
             current_ticks = clock();

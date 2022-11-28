@@ -4,7 +4,7 @@
 
 DrawingWindow::DrawingWindow() {}
 
-DrawingWindow::DrawingWindow(int w, int h, bool fullscreen) : width(w), height(h), pixelBuffer(w * h) {
+DrawingWindow::DrawingWindow(int w, int h, bool fullscreen) : width(w), height(h), pixelBuffer(w * h), overlayPixelBuffer(w * h) {
 	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) != 0) printMessageAndQuit("Could not initialise SDL: ", SDL_GetError());
 	uint32_t flags = SDL_WINDOW_OPENGL;
 	if (fullscreen) flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
@@ -19,15 +19,22 @@ DrawingWindow::DrawingWindow(int w, int h, bool fullscreen) : width(w), height(h
 	if (!renderer) printMessageAndQuit("Could not create renderer: ", SDL_GetError());
 	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
 	SDL_RenderSetLogicalSize(renderer, width, height);
+	SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 	int PIXELFORMAT = SDL_PIXELFORMAT_ARGB8888;
 	texture = SDL_CreateTexture(renderer, PIXELFORMAT, SDL_TEXTUREACCESS_STATIC, width, height);
 	if (!texture) printMessageAndQuit("Could not allocate texture: ", SDL_GetError());
+
+	overlay = SDL_CreateTexture(renderer, PIXELFORMAT, SDL_TEXTUREACCESS_STATIC, width, height);
+	if (!overlay) printMessageAndQuit("Could not allocate texture: ", SDL_GetError());
+	SDL_SetTextureBlendMode(overlay, SDL_BLENDMODE_BLEND);
 }
 
 void DrawingWindow::renderFrame() {
 	SDL_RenderClear(renderer);
 	SDL_UpdateTexture(texture, nullptr, pixelBuffer.data(), width * sizeof(uint32_t));
+	SDL_UpdateTexture(overlay, nullptr, overlayPixelBuffer.data(), width * sizeof(uint32_t));
 	SDL_RenderCopy(renderer, texture, nullptr, nullptr);
+	SDL_RenderCopy(renderer, overlay, nullptr, nullptr);
 }
 
 void DrawingWindow::finishRender() {
@@ -62,6 +69,7 @@ bool DrawingWindow::pollForInputEvents(SDL_Event &event) {
 	if (SDL_PollEvent(&event)) {
 		if ((event.type == SDL_QUIT) || ((event.type == SDL_KEYDOWN) && (event.key.keysym.sym == SDLK_ESCAPE))) {
 			SDL_DestroyTexture(texture);
+			SDL_DestroyTexture(overlay);
 			SDL_DestroyRenderer(renderer);
 			SDL_DestroyWindow(window);
 			SDL_Quit();
@@ -79,7 +87,18 @@ bool DrawingWindow::pollForInputEvents(SDL_Event &event) {
 void DrawingWindow::setPixelColour(size_t x, size_t y, uint32_t colour) {
 	if ((x >= width) || (y >= height)) {
 		//std::cout << x << "," << y << " not on visible screen area" << std::endl;
-	} else pixelBuffer[(y * width) + x] = colour;
+		return;
+	}
+
+	pixelBuffer[(y * width) + x] = colour;
+}
+
+void DrawingWindow::setOverlayPixelColour(size_t x, size_t y, uint32_t colour) {
+	if ((x >= width) || (y >= height)) {
+		//std::cout << x << "," << y << " not on visible screen area" << std::endl;
+		return;
+	}
+	overlayPixelBuffer[(y * width) + x] = colour;
 }
 
 uint32_t DrawingWindow::getPixelColour(size_t x, size_t y) {
@@ -91,6 +110,7 @@ uint32_t DrawingWindow::getPixelColour(size_t x, size_t y) {
 
 void DrawingWindow::clearPixels() {
 	std::fill(pixelBuffer.begin(), pixelBuffer.end(), 0);
+	std::fill(overlayPixelBuffer.begin(), overlayPixelBuffer.end(), 0);
 }
 
 void printMessageAndQuit(const std::string &message, const char *error) {

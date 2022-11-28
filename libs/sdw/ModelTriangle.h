@@ -9,6 +9,7 @@
 
 struct ModelTriangle {
 	std::array<glm::vec3, 3> vertices{};
+	std::array<glm::vec3, 3> vertexNormals{};
 	std::array<glm::vec2, 3> texturePoints{};
 	glm::vec3 colour{};
 	glm::vec3 normal{};
@@ -19,4 +20,5 @@ struct ModelTriangle {
 	friend std::ostream &operator<<(std::ostream &os, const ModelTriangle &triangle);
 
 	void recalculateNormal();
+	void recalculateVertexNormals();
 };

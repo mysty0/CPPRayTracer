@@ -15,7 +15,9 @@ public:
 private:
 	SDL_Window *window;
 	SDL_Texture *texture;
+	SDL_Texture* overlay;
 	std::vector<uint32_t> pixelBuffer;
+	std::vector<uint32_t> overlayPixelBuffer;
 
 public:
 	DrawingWindow();
@@ -25,6 +27,7 @@ public:
 	void saveBMP(const std::string &filename) const;
 	bool pollForInputEvents(SDL_Event &event);
 	void setPixelColour(size_t x, size_t y, uint32_t colour);
+	void setOverlayPixelColour(size_t x, size_t y, uint32_t colour);
 	uint32_t getPixelColour(size_t x, size_t y);
 	void clearPixels();
 	void finishRender();

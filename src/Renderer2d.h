@@ -23,7 +23,7 @@ namespace renderer2d {
         auto stepSize = diff / numberOfSteps;
         for(float i = 0.0; i < numberOfSteps; i++) {
             auto point = from + stepSize * i;
-            window.setPixelColour(floor(point.x), floor(point.y), encodeColor(color));
+            window.setOverlayPixelColour(floor(point.x), floor(point.y), encodeColor(color));
         }
     }
 
@@ -190,7 +190,7 @@ namespace renderer2d {
         for(int x = 0; x < size; x++) {
             for(int y = 0; y < size; y++) {
                 if(glm::length2(glm::vec2(x, y) - size/2) <= size) {
-                    window.setPixelColour(pos.x + x - size/2, pos.y + y - size/2, encodeColor(color));
+                    window.setOverlayPixelColour(pos.x + x - size/2, pos.y + y - size/2, encodeColor(color));
                 }
             }
         }
