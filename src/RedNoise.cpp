@@ -47,7 +47,7 @@ class Application {
     unique_ptr<Overlay> overlay;
     Light light = { glm::vec3(0.0, 0.3, 0.7), 5.f, 2.1f, 4.f, 0.5f, 256.f, 0.1f };
     float lightStrength = 5;
-    RenderType renderType = RenderType::raytracing;
+    RenderType renderType = RenderType::wireframe;
     glm::ivec2 debugPoint = glm::ivec2(0);
 
     SettingsUI settings;
@@ -57,12 +57,13 @@ class Application {
 
     public:
     Application() {
-        objs = loader::loadOBJ("../../../sphere.obj", 1, glm::vec3(1, 0, 0));//loader::loadOBJ("../../../cornell-box.obj", 0.25);
+        objs = loader::loadOBJ("../../../assets/textured-cornell-box.obj", 0.25, glm::vec3(1, 0, 0));
         for (const auto& obj : objs) {
             for (const auto& triangle : obj.triangles) {
                 modelTriangles.push_back(triangle);
             }
         }
+        cout << "Loaded object poly count: " << modelTriangles.size() << endl;
 
         windowSize = glm::vec2(WIDTH, HEIGHT);
         renderer = make_unique<Renderer3d>(window, cameraMatrix, f, windowSize);
@@ -77,7 +78,7 @@ class Application {
         items.push_back(make_unique<FloatMenuItem>("light intesity", light.intensity));
         items.push_back(make_unique<FloatMenuItem>("diffusionFactor", light.diffusionFactor));
         items.push_back(make_unique<FloatMenuItem>("inclineFactor", light.inclineFactor));
-        items.push_back(make_unique<FloatMenuItem>("specularFactor", light.specularFactor));
+        items.push_back(make_unique<FloatMenuItem>("specularFactor", light.specularFactor, 0.01f));
         items.push_back(make_unique<FloatMenuItem>("specularExp", light.specularExp, 20.f));
         items.push_back(make_unique<FloatMenuItem>("ambientMin", light.ambientMin));
         items.push_back(make_unique<BoolMenuItem>("overlayEnabled", overlayEnabled));
@@ -221,7 +222,7 @@ class Application {
         SDL_Event event;
 
         auto ctx = overlay->resetContext();
-        overlay::setFont(ctx, "../../../Roboto-Regular.ttf", 12);
+        overlay::setFont(ctx, "../../../assets/Roboto-Regular.ttf", 12);
 
         while (true) {
             current_ticks = clock();

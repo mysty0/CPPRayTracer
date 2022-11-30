@@ -2,6 +2,7 @@
 
 #include "Common.h"
 #include <thread>
+#include <cassert>
 
 struct Light {
     glm::vec3 position;
@@ -38,6 +39,16 @@ public:
         }
     }
 
+    glm::vec3 mapColor(RayTriangleIntersection &intr) {
+        auto tex = intr.intersectedTriangle->texture.lock();
+        if (tex->hasTextureMap()) {
+            auto* triangle = intr.intersectedTriangle;
+            return decodeColor(tex->map.point(triangle->texturePoints[0] * (1 - intr.e1 - intr.e2) + intr.e1 * triangle->texturePoints[1] + intr.e2 * triangle->texturePoints[2]));
+        } else {
+            return tex->color;
+        }
+    }
+
     void renderObjectsLine(vector<ModelTriangle> &triangles, Light& light, int start, int end) {
         auto cameraRot = glm::inverse(removeTranslation(cameraMatrix));
         auto camPos = vec4To3(cameraMatrix[3]) * glm::vec3(-1,-1,-1);
@@ -48,7 +59,7 @@ public:
                 if(intr.intersectedTriangle != nullptr) {
                     auto lightIntr = checkIntersection(triangles, intr.intersectionPoint, light.position - intr.intersectionPoint);
                     if(lightIntr) {
-                        window.setPixelColour(x, y, encodeColor(intr.intersectedTriangle->colour * glm::vec3(light.ambientMin)));
+                        window.setPixelColour(x, y, encodeColor(mapColor(intr) * glm::vec3(light.ambientMin)));      
                     } else { 
                         auto intensity = glm::pi<float>()*glm::distance2(intr.intersectionPoint, light.position)*light.inclineFactor;
                         auto lightDir = light.position-intr.intersectionPoint;
@@ -56,8 +67,8 @@ public:
                         normal = glm::normalize(normal / glm::length(normal));
                         auto diffuse = glm::clamp(glm::dot(normal, lightDir), 0.f, 1.0f)*light.diffusionFactor;
                         auto reflect = glm::normalize(lightDir - 2.f * normal * (glm::dot(lightDir, normal)));
-                        auto specular = glm::pow(glm::clamp(glm::dot(reflect, ray), 0.f, 1.0f), light.specularExp)*light.specularFactor;
-                        window.setPixelColour(x, y, encodeColor(intr.intersectedTriangle->colour * max((light.intensity / intensity) * diffuse, light.ambientMin) + specular));
+                        auto specular = (light.intensity / intensity) * glm::pow(glm::clamp(glm::dot(reflect, ray), 0.f, 1.0f), light.specularExp)*light.specularFactor;
+                        window.setPixelColour(x, y, encodeColor(mapColor(intr) * max((light.intensity / intensity) * diffuse, light.ambientMin) + specular));
 
                         if (debugPoint.x == x && debugPoint.y == y) {
                             renderer2d::drawDot(window, debugPoint, 6, glm::vec3(255));

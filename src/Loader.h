@@ -12,7 +12,8 @@
 #include <TextureMap.h>
 #include <ModelTriangle.h>
 #include <map>
-#include "Models.h"
+#include "ObjectTexture.h"
+#include "ModelObject.h"
 
 #ifdef _WIN32
 #include <direct.h>
@@ -57,18 +58,20 @@ namespace loader {
         vector<glm::vec3> vertices;
         vector<glm::vec2> textureMappings;
         map<string, ObjectTexture> mat;
-        ObjectTexture tex(defaultColor);
+        std::shared_ptr<ObjectTexture> tex = std::make_shared<ObjectTexture>(defaultColor);
         vector<ModelTriangle> triangles;
         vector<array<int, 3>> trianglesVertexIndexes;
         string name;
         std::vector<glm::vec3> vertexNormals;
+        std::vector<glm::vec3> normals;
 
         auto recalcVertexNormals = [&]() {
             for (int i = 0; i < triangles.size(); i++) {
+                if (glm::length(triangles[i].vertexNormals[0]) > 0) continue;
                 for (int v = 0; v < 3; v++) {
                     auto n = vertexNormals[trianglesVertexIndexes[i][v]];
                     triangles[i].vertexNormals[v] = glm::normalize(n / glm::length(n));
-                    cout << glm::to_string(triangles[i].vertexNormals[v]) << endl;
+                    //cout << glm::to_string(triangles[i].vertexNormals[v]) << endl;
                 }
             }
         };
@@ -77,25 +80,24 @@ namespace loader {
         auto oldCwd = cwd(buf, sizeof(buf));
         cd(path.substr(0, path.find_last_of("\\/")).c_str());
 
-
-
         while(inputStream.good() && !inputStream.eof()) {
             std::getline(inputStream, nextLine);
             if(nextLine.size() == 0) continue;
             auto tokens = split(nextLine, ' ');
             auto ins = tokens[0];
             if(ins == "mtllib") mat = loadMTL(tokens[1]);
-            else if(ins == "usemtl") tex = mat[tokens[1]];
+            else if(ins == "usemtl") tex = std::make_shared<ObjectTexture>(mat[tokens[1]]);
             else if(ins == "o") {
                 recalcVertexNormals();
 
-                objects.push_back({name, tex, triangles});
+                objects.push_back({name, std::move(tex), triangles});
                 triangles.clear();
                 trianglesVertexIndexes.clear();
                 name = tokens[1];
             }
             else if(ins == "v") vertices.push_back(glm::vec3(stof(tokens[1]), stof(tokens[2]), stof(tokens[3])) * scale);
-            else if(ins == "vt") textureMappings.push_back(glm::vec2(stof(tokens[1]) * tex.map.width, stof(tokens[2]) * tex.map.height));
+            else if(ins == "vn") normals.push_back(glm::vec3(stof(tokens[1]), stof(tokens[2]), stof(tokens[3])));
+            else if(ins == "vt") textureMappings.push_back(glm::vec2(stof(tokens[1]) * tex->map.width, stof(tokens[2]) * tex->map.height));
             else if(ins == "f") {
                 auto x = split(tokens[1], '/');
                 auto y = split(tokens[2], '/');
@@ -104,14 +106,20 @@ namespace loader {
                 int v1 = stoi(x[0]) - 1;
                 int v2 = stoi(y[0]) - 1;
                 int v3 = stoi(z[0]) - 1;
-                if(x[1].size() == 0)
-                    triang = ModelTriangle(vertices[v1], vertices[v2], vertices[v3], tex.color);
+                if(x.size() == 1|| x[1].size() == 0)
+                    triang = ModelTriangle(vertices[v1], vertices[v2], vertices[v3], tex);
                 else
                     triang = ModelTriangle(
                         vertices[v1], vertices[v2], vertices[v3], 
                         textureMappings[stoi(x[1])-1], textureMappings[stoi(y[1])-1], textureMappings[stoi(z[1])-1], 
-                        tex.color
+                        tex
                     );
+
+                if (x.size() > 2 && x[2].size() != 0) {
+                    triang.vertexNormals[0] = normals[stoi(x[2])-1];
+                    triang.vertexNormals[1] = normals[stoi(y[2])-1];
+                    triang.vertexNormals[2] = normals[stoi(z[2])-1];
+                }
 
                 triang.recalculateNormal();
                 triangles.push_back(triang);

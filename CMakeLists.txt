@@ -41,7 +41,7 @@ add_executable(RedNoise
         libs/sdw/TextureMap.cpp
         libs/sdw/TexturePoint.cpp
         libs/sdw/Utils.cpp
-        src/RedNoise.cpp "src/SettingsUI.h")
+        src/RedNoise.cpp "src/SettingsUI.h" "src/ObjectTexture.h")
 
 if (MSVC)
     target_compile_options(RedNoise

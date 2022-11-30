@@ -32,6 +32,10 @@ uint32_t encodeColor(glm::vec3 color) {
     return (255 << 24) + (int(std::min(color.r * 255, 255.0f)) << 16) + (int(std::min(color.g * 255, 255.0f)) << 8) + int(std::min(color.b * 255, 255.0f));
 }
 
+glm::vec3 decodeColor(uint32_t color) {
+    return glm::vec3(color >> 16 & 0xFF, color >> 8 & 0xFF, color & 0xFF)/255.0f;
+}
+
 glm::vec2 pointToVec(CanvasPoint point) {
     return glm::vec2(point.x, point.y);
 }

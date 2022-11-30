@@ -1,3 +1,5 @@
+#pragma once
+
 #include "MatrixUtils.h"
 #include "Misc.h"
 #include <glm/glm.hpp>
