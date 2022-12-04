@@ -4,19 +4,17 @@
 #include "glm/ext.hpp"
 #include <TextureMap.h>
 #include <map>
+#include <optional.h>
 
 using namespace std;
 
 struct ObjectTexture {
-    glm::vec3 color{};
-    TextureMap map{};
+    tl::optional<TextureMap> base = tl::nullopt;
+    tl::optional<TextureMap> roughness = tl::nullopt;
+    tl::optional<TextureMap> bump = tl::nullopt;
+    glm::vec3 color = glm::vec3();
+    float specular = 0.0f;
 
-    ObjectTexture() {};
-    ObjectTexture(glm::vec3 color, TextureMap map) : color(color), map(map) {};
+    ObjectTexture() = default;
     ObjectTexture(glm::vec3 color) : color(color) {};
-    ObjectTexture(TextureMap map) : map(map) {};
-
-    bool hasTextureMap() {
-        return map.height != 0 && map.width != 0;
-    }
 };

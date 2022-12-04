@@ -20,6 +20,7 @@ namespace renderer2d {
     void drawLine(DrawingWindow &window, CanvasPoint from, CanvasPoint to, glm::vec3 color) {
         auto diff = to - from;
         float numberOfSteps = floor(fmax(abs(diff.x), abs(diff.y)));
+        if (numberOfSteps > window.height + window.width) return;
         auto stepSize = diff / numberOfSteps;
         for(float i = 0.0; i < numberOfSteps; i++) {
             auto point = from + stepSize * i;
@@ -88,8 +89,6 @@ namespace renderer2d {
             drawDepthLine(window, CanvasPoint(x, triangle.v1().y, z), triangle.v0(), color, depthBuffer);
             drawDepthLine(window, CanvasPoint(x, triangle.v1().y, z), triangle.v2(), color, depthBuffer);
         }
-        // drawTriangle(window, CanvasTriangle(triangle.v0(), triangle.v1(), CanvasPoint(xMid, triangle.v1().y)), Colour(255, 255, 255));
-        // drawTriangle(window, CanvasTriangle(triangle.v2(), triangle.v1(), CanvasPoint(xMid, triangle.v1().y)), Colour(255, 255, 255));
     }
 
     void drawSimpleTriangle(DrawingWindow &window, float step, bool bottomPart, CanvasPoint top, CanvasPoint bottom, CanvasPoint mid, glm::vec3 color, vector<vector<float>> &depthBuffer) {

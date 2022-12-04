@@ -30,8 +30,8 @@
 using namespace std;
 
 namespace loader {
-    map<string, ObjectTexture> loadMTL(string path) {
-        map<string, ObjectTexture> mat;
+    map<string, std::shared_ptr<ObjectTexture>> loadMTL(string path) {
+        map<string, std::shared_ptr<ObjectTexture>> mat;
 
         ifstream inputStream(path);
         string nextLine;
@@ -42,9 +42,15 @@ namespace loader {
             if(nextLine.size() == 0) continue;
             auto tokens = split(nextLine, ' ');
             auto ins = tokens[0];
-            if(ins == "newmtl") name = tokens[1];
-            if(ins == "Kd") mat[name] = ObjectTexture(glm::vec3(stof(tokens[1]), stof(tokens[2]), stof(tokens[3])));
-            if(ins == "map_Kd") mat[name] = ObjectTexture(mat[name].color, TextureMap(tokens[1]));
+            if (ins == "newmtl") {
+                name = tokens[1];
+                mat[name] = std::make_shared<ObjectTexture>();
+            }
+            if(ins == "Kd") mat[name]->color = glm::vec3(stof(tokens[1]), stof(tokens[2]), stof(tokens[3]));
+            if(ins == "Ns") mat[name]->specular = stof(tokens[1]);
+            if(ins == "map_Kd") mat[name]->base = TextureMap(tokens[1]);
+            if(ins == "map_Bump") mat[name]->bump = TextureMap(tokens[1]);
+            if(ins == "map_Ns") mat[name]->roughness = TextureMap(tokens[1]);
         }
 
         return mat;
@@ -57,7 +63,7 @@ namespace loader {
         string nextLine;
         vector<glm::vec3> vertices;
         vector<glm::vec2> textureMappings;
-        map<string, ObjectTexture> mat;
+        map<string, std::shared_ptr<ObjectTexture>> mat;
         std::shared_ptr<ObjectTexture> tex = std::make_shared<ObjectTexture>(defaultColor);
         vector<ModelTriangle> triangles;
         vector<array<int, 3>> trianglesVertexIndexes;
@@ -86,18 +92,18 @@ namespace loader {
             auto tokens = split(nextLine, ' ');
             auto ins = tokens[0];
             if(ins == "mtllib") mat = loadMTL(tokens[1]);
-            else if(ins == "usemtl") tex = std::make_shared<ObjectTexture>(mat[tokens[1]]);
+            else if(ins == "usemtl") tex = mat[tokens[1]];
             else if(ins == "o") {
                 recalcVertexNormals();
-
                 objects.push_back({name, std::move(tex), triangles});
                 triangles.clear();
                 trianglesVertexIndexes.clear();
                 name = tokens[1];
+                tex = std::make_shared<ObjectTexture>(defaultColor);
             }
             else if(ins == "v") vertices.push_back(glm::vec3(stof(tokens[1]), stof(tokens[2]), stof(tokens[3])) * scale);
             else if(ins == "vn") normals.push_back(glm::vec3(stof(tokens[1]), stof(tokens[2]), stof(tokens[3])));
-            else if(ins == "vt") textureMappings.push_back(glm::vec2(stof(tokens[1]) * tex->map.width, stof(tokens[2]) * tex->map.height));
+            else if(ins == "vt") textureMappings.push_back(glm::vec2(stof(tokens[1]), stof(tokens[2])));
             else if(ins == "f") {
                 auto x = split(tokens[1], '/');
                 auto y = split(tokens[2], '/');

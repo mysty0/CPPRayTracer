@@ -41,12 +41,10 @@ public:
 
     glm::vec3 mapColor(RayTriangleIntersection &intr) {
         auto tex = intr.intersectedTriangle->texture.lock();
-        if (tex->hasTextureMap()) {
+        return tex->base.map_or([&](auto base) {
             auto* triangle = intr.intersectedTriangle;
-            return decodeColor(tex->map.point(triangle->texturePoints[0] * (1 - intr.e1 - intr.e2) + intr.e1 * triangle->texturePoints[1] + intr.e2 * triangle->texturePoints[2]));
-        } else {
-            return tex->color;
-        }
+            return decodeColor(base.point(triangle->texturePoints[0] * (1 - intr.e1 - intr.e2) + intr.e1 * triangle->texturePoints[1] + intr.e2 * triangle->texturePoints[2]));
+        }, tex->color);
     }
 
     void renderObjectsLine(vector<ModelTriangle> &triangles, Light& light, int start, int end) {
@@ -80,7 +78,6 @@ public:
                             renderer2d::drawLine(window, lightPos, intrPos, glm::vec3(255, 255, 0));
                         }
                     }
-
                 } else {
                     window.setPixelColour(x, y, 0);
                 }

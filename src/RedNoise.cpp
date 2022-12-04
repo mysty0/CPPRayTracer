@@ -47,7 +47,7 @@ class Application {
     unique_ptr<Overlay> overlay;
     Light light = { glm::vec3(0.0, 0.3, 0.7), 5.f, 2.1f, 4.f, 0.5f, 256.f, 0.1f };
     float lightStrength = 5;
-    RenderType renderType = RenderType::wireframe;
+    RenderType renderType = RenderType::raytracing;
     glm::ivec2 debugPoint = glm::ivec2(0);
 
     SettingsUI settings;
@@ -57,7 +57,7 @@ class Application {
 
     public:
     Application() {
-        objs = loader::loadOBJ("../../../assets/textured-cornell-box.obj", 0.25, glm::vec3(1, 0, 0));
+        objs = loader::loadOBJ("../../../assets/hackspace_raw.obj", 0.25, glm::vec3(1, 0, 0));
         for (const auto& obj : objs) {
             for (const auto& triangle : obj.triangles) {
                 modelTriangles.push_back(triangle);
