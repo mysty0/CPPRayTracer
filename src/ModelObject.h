@@ -18,9 +18,19 @@ using namespace std;
 
 struct ModelObject {
     string name;
-    std::shared_ptr<ObjectTexture> texture{};
+    ObjectTexture* texture{};
     vector<ModelTriangle> triangles{};
 
     ModelObject() {};
-    ModelObject(string name, std::shared_ptr<ObjectTexture> texture, vector<ModelTriangle> triangles) : name(name), texture(texture), triangles(triangles) {};
+    ModelObject(string name, ObjectTexture* texture, vector<ModelTriangle> triangles) : name(name), texture(texture), triangles(triangles) {};
+};
+
+struct Model {
+    vector<ModelObject> objects;
+
+    void free() {
+        for (auto& obj : objects) {
+            delete obj.texture;
+        }
+    }
 };

@@ -44,7 +44,7 @@ namespace renderer2d {
         }
     }
 
-    void drawTexLine(DrawingWindow &window, CanvasPoint from, CanvasPoint to, const TextureMap &map, vector<vector<float>> &depthBuffer) {
+    void drawTexLine(DrawingWindow &window, CanvasPoint from, CanvasPoint to, const TextureMap *map, vector<vector<float>> &depthBuffer) {
         auto diff = to - from;
         float numberOfSteps = ceil(fmax(abs(diff.x), abs(diff.y)));
         auto stepSize = diff / numberOfSteps;
@@ -54,7 +54,7 @@ namespace renderer2d {
             auto y = floor(point.y);
             auto z = -point.depth;
             if(y > 0 && x > 0 && y < depthBuffer.size() && x < depthBuffer[y].size() && z >= depthBuffer[y][x]) {
-                window.setPixelColour(x, y, map.point(floor(point.texturePoint.x), floor(point.texturePoint.y)));
+                window.setPixelColour(x, y, map->point(floor(point.texturePoint.x), floor(point.texturePoint.y)));
                 depthBuffer[y][x] = z;
             }
         }
@@ -137,7 +137,7 @@ namespace renderer2d {
         drawSimpleTriangle(window, step, true, triangle.v1(), triangle.v2(), mid, color, depthBuffer);
     }
 
-    void drawSimpleTexTriangle(DrawingWindow &window, float step, bool bottomPart, CanvasPoint top, CanvasPoint bottom, CanvasPoint mid, const TextureMap &map, vector<vector<float>> &depthBuffer) {
+    void drawSimpleTexTriangle(DrawingWindow &window, float step, bool bottomPart, CanvasPoint top, CanvasPoint bottom, CanvasPoint mid, const TextureMap *map, vector<vector<float>> &depthBuffer) {
         auto adiff = bottom - top;
         float aStep = adiff.y == 0 ? 0 : adiff.x / adiff.y;
 
@@ -162,7 +162,7 @@ namespace renderer2d {
         if(bottomPart) std::swap(top, bottom);
     }
 
-    void drawTextureTriangle(DrawingWindow &window, CanvasTriangle triangle, const TextureMap &map, vector<vector<float>> &depthBuffer) {
+    void drawTextureTriangle(DrawingWindow &window, CanvasTriangle triangle, const TextureMap *map, vector<vector<float>> &depthBuffer) {
         if(triangle.v0().y < triangle.v1().y)
             std::swap(triangle.vertices[0], triangle.vertices[1]);
         

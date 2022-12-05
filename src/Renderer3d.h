@@ -42,11 +42,12 @@ class Renderer3d {
                 auto p3 = (getCanvasIntersectionPoint(t.vertices[2], cameraMatrix, f, windowSize));
                 p3.texturePoint = t.texturePoints[2];
 
-                obj.texture->base.map([&](auto tex) {
+                auto tex = obj.texture->base;
+                if(tex) {
                     renderer2d::drawTextureTriangle(window, CanvasTriangle(p1, p2, p3), tex, depthBuffer);
-                }).or_else([&] {
+                } else {
                     renderer2d::drawTriangle(window, CanvasTriangle(p1, p2, p3), obj.texture->color, depthBuffer);
-                });
+                };
             }
         }
     }

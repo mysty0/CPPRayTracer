@@ -25,7 +25,7 @@ using namespace std;
 enum RenderType { wireframe = 0, raster, raytracing };
 
 class Application {
-    vector<ModelObject> objs;
+    Model model;
     vector<ModelTriangle> modelTriangles;
 
     float f = 240*2;
@@ -57,8 +57,8 @@ class Application {
 
     public:
     Application() {
-        objs = loader::loadOBJ("../../../assets/hackspace_raw.obj", 0.25, glm::vec3(1, 0, 0));
-        for (const auto& obj : objs) {
+        model = loader::loadOBJ("../../../assets/hackspace_raw.obj", 0.25, glm::vec3(1, 0, 0));
+        for (const auto& obj : model.objects) {
             for (const auto& triangle : obj.triangles) {
                 modelTriangles.push_back(triangle);
             }
@@ -84,6 +84,10 @@ class Application {
         items.push_back(make_unique<BoolMenuItem>("overlayEnabled", overlayEnabled));
         items.push_back(make_unique<BoolMenuItem>("normalsOvrEnabd", normalsOverlayEnabled));
         settings = SettingsUI(move(items));
+    }
+
+    ~Application() {
+        model.free();
     }
 
     // glm::mat4 lookAt(glm::vec3 pos, glm::vec3 target) {
@@ -140,12 +144,12 @@ class Application {
         switch (renderType)
         {
         case RenderType::wireframe:
-            renderer->renderWireframe(objs);
+            renderer->renderWireframe(model.objects);
             break;
 
         case RenderType::raster:
             renderer->clearDepthBuffer();
-            renderer->renderObjects(objs);
+            renderer->renderObjects(model.objects);
             break;
 
         case RenderType::raytracing:
@@ -161,7 +165,7 @@ class Application {
             renderer2d::drawDot(window, lightPos.vec2(), 5, glm::vec3(255));
 
             if (normalsOverlayEnabled) {
-                for (auto const& obj : objs) {
+                for (auto const& obj : model.objects) {
                     for (auto const& triangle : obj.triangles) {
                         for (int i = 0; i < 3; i++) {
                             auto start = Renderer3d::getCanvasIntersectionPoint(triangle.vertices[i], cameraMatrix, f, windowSize);
@@ -176,7 +180,7 @@ class Application {
         
         if(depthView) renderer->drawDepthBuffer(window, depthBrightness);
         if(wireframeEnabled) {
-            renderer->renderWireframe(objs);
+            renderer->renderWireframe(model.objects);
         }
     }
 

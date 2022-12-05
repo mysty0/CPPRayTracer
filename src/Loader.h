@@ -30,8 +30,8 @@
 using namespace std;
 
 namespace loader {
-    map<string, std::shared_ptr<ObjectTexture>> loadMTL(string path) {
-        map<string, std::shared_ptr<ObjectTexture>> mat;
+    map<string, ObjectTexture*> loadMTL(string path) {
+        map<string, ObjectTexture*> mat;
 
         ifstream inputStream(path);
         string nextLine;
@@ -44,27 +44,28 @@ namespace loader {
             auto ins = tokens[0];
             if (ins == "newmtl") {
                 name = tokens[1];
-                mat[name] = std::make_shared<ObjectTexture>();
+                mat[name] = new ObjectTexture();
             }
             if(ins == "Kd") mat[name]->color = glm::vec3(stof(tokens[1]), stof(tokens[2]), stof(tokens[3]));
             if(ins == "Ns") mat[name]->specular = stof(tokens[1]);
-            if(ins == "map_Kd") mat[name]->base = TextureMap(tokens[1]);
-            if(ins == "map_Bump") mat[name]->bump = TextureMap(tokens[1]);
-            if(ins == "map_Ns") mat[name]->roughness = TextureMap(tokens[1]);
+            if(ins == "map_Kd") mat[name]->base = new TextureMap(tokens[1]);
+            if(ins == "map_Bump") mat[name]->bump = new TextureMap(tokens[1]);
+            if(ins == "map_Ns") mat[name]->roughness = new TextureMap(tokens[1]);
         }
 
         return mat;
     }
 
-    vector<ModelObject> loadOBJ(string path, float scale = 1, glm::vec3 defaultColor = glm::vec3()) {
+    Model loadOBJ(string path, float scale = 1, glm::vec3 defaultColor = glm::vec3()) {
         vector<ModelObject> objects;
 
         ifstream inputStream(path);
         string nextLine;
         vector<glm::vec3> vertices;
         vector<glm::vec2> textureMappings;
-        map<string, std::shared_ptr<ObjectTexture>> mat;
-        std::shared_ptr<ObjectTexture> tex = std::make_shared<ObjectTexture>(defaultColor);
+        map<string, ObjectTexture*> mat;
+        ObjectTexture* tex = new ObjectTexture(defaultColor);
+        bool texWasUsed = false;
         vector<ModelTriangle> triangles;
         vector<array<int, 3>> trianglesVertexIndexes;
         string name;
@@ -99,12 +100,16 @@ namespace loader {
                 triangles.clear();
                 trianglesVertexIndexes.clear();
                 name = tokens[1];
-                tex = std::make_shared<ObjectTexture>(defaultColor);
+                if (!texWasUsed) delete tex;
+                tex = new ObjectTexture(defaultColor);
+                texWasUsed = false;
             }
             else if(ins == "v") vertices.push_back(glm::vec3(stof(tokens[1]), stof(tokens[2]), stof(tokens[3])) * scale);
             else if(ins == "vn") normals.push_back(glm::vec3(stof(tokens[1]), stof(tokens[2]), stof(tokens[3])));
             else if(ins == "vt") textureMappings.push_back(glm::vec2(stof(tokens[1]), stof(tokens[2])));
             else if(ins == "f") {
+                texWasUsed = true;
+
                 auto x = split(tokens[1], '/');
                 auto y = split(tokens[2], '/');
                 auto z = split(tokens[3], '/');
@@ -112,14 +117,15 @@ namespace loader {
                 int v1 = stoi(x[0]) - 1;
                 int v2 = stoi(y[0]) - 1;
                 int v3 = stoi(z[0]) - 1;
-                if(x.size() == 1|| x[1].size() == 0)
+                if (x.size() == 1 || x[1].size() == 0) {
                     triang = ModelTriangle(vertices[v1], vertices[v2], vertices[v3], tex);
-                else
+                } else {
                     triang = ModelTriangle(
-                        vertices[v1], vertices[v2], vertices[v3], 
-                        textureMappings[stoi(x[1])-1], textureMappings[stoi(y[1])-1], textureMappings[stoi(z[1])-1], 
+                        vertices[v1], vertices[v2], vertices[v3],
+                        textureMappings[stoi(x[1]) - 1], textureMappings[stoi(y[1]) - 1], textureMappings[stoi(z[1]) - 1],
                         tex
                     );
+                }
 
                 if (x.size() > 2 && x[2].size() != 0) {
                     triang.vertexNormals[0] = normals[stoi(x[2])-1];
@@ -142,6 +148,6 @@ namespace loader {
 
         cd(oldCwd);
 
-        return objects;
+        return Model{ objects };
     }
 }

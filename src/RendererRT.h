@@ -40,22 +40,40 @@ public:
     }
 
     glm::vec3 mapColor(RayTriangleIntersection &intr) {
-        auto tex = intr.intersectedTriangle->texture.lock();
-        return tex->base.map_or([&](auto base) {
+        auto tex = intr.intersectedTriangle->texture;
+        auto base = tex->base;
+        if (base) {
             auto* triangle = intr.intersectedTriangle;
-            return decodeColor(base.point(triangle->texturePoints[0] * (1 - intr.e1 - intr.e2) + intr.e1 * triangle->texturePoints[1] + intr.e2 * triangle->texturePoints[2]));
-        }, tex->color);
+            return decodeColor(base->point(triangle->texturePoints[0] * (1 - intr.e1 - intr.e2) + intr.e1 * triangle->texturePoints[1] + intr.e2 * triangle->texturePoints[2]));
+        } else {
+            return tex->color;
+        }
     }
+
+    struct Vertices {
+        glm::vec3 v1;
+        glm::vec3 v2;
+        glm::vec3 v3;
+        const ModelTriangle* triangle;
+    };
 
     void renderObjectsLine(vector<ModelTriangle> &triangles, Light& light, int start, int end) {
         auto cameraRot = glm::inverse(removeTranslation(cameraMatrix));
         auto camPos = vec4To3(cameraMatrix[3]) * glm::vec3(-1,-1,-1);
+        
+        auto centerRay = glm::normalize(vec4To3(cameraRot * glm::vec4(0, 0, -1, 1)));
+        vector<Vertices> vertices;
+        for (int i = 0; i < triangles.size(); ++i) {
+            auto triangle = &triangles[i];
+            vertices.push_back(Vertices{ triangle->vertices[0], triangle->vertices[1], triangle->vertices[2], triangle });
+        }
+
         for(int y = 0; y < window.height; y++) {
             for(int x = start; x < end; x++) {
                 auto ray = glm::normalize(vec4To3(cameraRot * glm::vec4(x - (int)window.width/2, -y + (int)window.height/2, -f, 1)));
-                auto intr = getClosestIntersection(triangles, camPos, ray);
+                auto intr = getClosestIntersection(vertices, camPos, ray);
                 if(intr.intersectedTriangle != nullptr) {
-                    auto lightIntr = checkIntersection(triangles, intr.intersectionPoint, light.position - intr.intersectionPoint);
+                    auto lightIntr = checkIntersection(vertices, intr.intersectionPoint, light.position - intr.intersectionPoint);
                     if(lightIntr) {
                         window.setPixelColour(x, y, encodeColor(mapColor(intr) * glm::vec3(light.ambientMin)));      
                     } else { 
@@ -85,10 +103,10 @@ public:
         }
     }
 
-    glm::vec3 triangleIntersection(const ModelTriangle& triangle, const glm::vec3 &cameraPosition, glm::vec3 rayDirection, glm::vec3 &e0, glm::vec3 &e1) {
-        e0 = triangle.vertices[1] - triangle.vertices[0];
-        e1 = triangle.vertices[2] - triangle.vertices[0];
-        glm::vec3 sp = cameraPosition - triangle.vertices[0];
+    glm::vec3 triangleIntersection(const Vertices& vertices, const glm::vec3 &cameraPosition, glm::vec3 rayDirection, glm::vec3 &e0, glm::vec3 &e1) {
+        e0 = vertices.v2 - vertices.v1;
+        e1 = vertices.v3 - vertices.v1;
+        glm::vec3 sp = cameraPosition - vertices.v1;
         glm::mat3 de(-rayDirection, e0, e1);
         glm::vec3 possibleSolution = glm::inverse(de) * sp;
         if(possibleSolution.x >= 0 && possibleSolution.y >= 0 && possibleSolution.z >= 0 && possibleSolution.y + possibleSolution.z <= 1) 
@@ -96,27 +114,27 @@ public:
         else return glm::vec3(-1, 0, 0);
     }
 
-    bool checkIntersection(vector<ModelTriangle>& triangles, glm::vec3 &cameraPosition, glm::vec3 rayDirection) {
+    bool checkIntersection(vector<Vertices> &vertices, glm::vec3 &cameraPosition, glm::vec3 rayDirection) {
         glm::vec3 e0, e1;
 
-        for(auto const &triangle : triangles) {
-            auto possibleSolution = triangleIntersection(triangle, cameraPosition, rayDirection, e0, e1);
+        for(auto const & vertice : vertices) {
+            auto possibleSolution = triangleIntersection(vertice, cameraPosition, rayDirection, e0, e1);
             if(possibleSolution.x > 0.000001) return true;
         }
         
         return false;
     }
 
-    RayTriangleIntersection getClosestIntersection(vector<ModelTriangle>& triangles, glm::vec3 &cameraPosition, glm::vec3 rayDirection) {
+    RayTriangleIntersection getClosestIntersection(vector<Vertices>& vertices, glm::vec3 &cameraPosition, glm::vec3 rayDirection) {
         RayTriangleIntersection inter;
         float minDst = -1;
         glm::vec3 e0, e1;
 
-        for(auto const &triangle : triangles) {
-            auto possibleSolution = triangleIntersection(triangle, cameraPosition, rayDirection, e0, e1);
+        for(auto const &vertice : vertices) {
+            auto possibleSolution = triangleIntersection(vertice, cameraPosition, rayDirection, e0, e1);
             if((minDst > possibleSolution.x || minDst < 0) && possibleSolution.x >= 0) {
                 minDst = possibleSolution.x;
-                inter = RayTriangleIntersection(triangle.vertices[0] + e0 * possibleSolution.y + e1 * possibleSolution.z, minDst, possibleSolution.y, possibleSolution.z, &triangle, 0);
+                inter = RayTriangleIntersection(vertice.v1 + e0 * possibleSolution.y + e1 * possibleSolution.z, minDst, possibleSolution.y, possibleSolution.z, vertice.triangle, 0);
             }
         }
         
