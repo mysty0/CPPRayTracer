@@ -69,12 +69,15 @@ else ()
         -Werror=return-type
         -Wno-unused-parameter
         -Wno-unused-variable
-        -Wno-ignored-attributes)
+        -Wno-ignored-attributes
+        )
 
     set(DEBUG_OPTIONS -O2 -fno-omit-frame-pointer -g)
     set(RELEASE_OPTIONS -O3 -march=native -mtune=native)
-    target_link_libraries(RedNoise PUBLIC $<$<CONFIG:Debug>:-Wl,-fsanitize=undefined,-fsanitize=address>)
-
+    target_link_libraries(RedNoise PUBLIC $<$<CONFIG:Debug>:-Wl>)
+    if (NOT DEFINED SDL2_TTF_LIBRARIES)
+        set(SDL2_TTF_LIBRARIES SDL2_ttf::SDL2_ttf)
+    endif()
 endif()
 
 target_compile_options(RedNoise PUBLIC "$<$<CONFIG:RelWithDebInfo>:${RELEASE_OPTIONS}>")

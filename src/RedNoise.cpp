@@ -47,7 +47,7 @@ class Application {
     unique_ptr<Overlay> overlay;
     Light light = { glm::vec3(0.0, 0.3, 2.7), 5.f, 2.1f, 4.f, 0.5f, 256.f, 0.1f };
     float lightStrength = 5;
-    RenderType renderType = RenderType::raytracing;
+    RenderType renderType = RenderType::raster;
     glm::ivec2 debugPoint = glm::ivec2(0);
 
     SettingsUI settings;
@@ -59,17 +59,17 @@ class Application {
 
     public:
     Application() {
-        objs = loader::loadOBJ("../../../assets/hackspace_raw.obj", 0.25, glm::vec3(1, 0, 0));
+        objs = loader::loadOBJ("assets/cornell-box.obj", 0.25, glm::vec3(1, 0, 0));
         for (const auto& obj : objs) {
             for (const auto& triangle : obj.triangles) {
                 modelTriangles.push_back(triangle);
             }
         }
-        cout << "Loaded object poly count: " << modelTriangles.size() << endl;
+        cout << "Loaded object poly count: " << modelTriangles.size() << " objs " << objs.size()  << endl;
 
         windowSize = glm::vec2(WIDTH, HEIGHT);
         renderer = make_unique<Renderer3d>(window, cameraMatrix, f, windowSize);
-        rendererRT = make_unique<RendererRT>(window, cameraMatrix, f, windowSize, debugPoint, TextureMap("../../../assets/env.ppm"));
+        rendererRT = make_unique<RendererRT>(window, cameraMatrix, f, windowSize, debugPoint, TextureMap("assets/env.ppm"));
         overlay = make_unique<Overlay>(window);
 
         vector<unique_ptr<MenuItem>> items;
@@ -138,16 +138,16 @@ class Application {
         window.clearPixels();
         
         //printMat4(cameraMatrix);
-        cameraMatrix[3] = cameraMatrix[3] * mat3To4(createRotationY(0.005));
+        //cameraMatrix[3] = cameraMatrix[3] * mat3To4(createRotationY(0.005));
         //cameraOrientation = lookAt(getPosFromMatrix(cameraMatrix), glm::vec3(0, 0, 0));
         //cout << glm::length(glm::cross(cameraOrientation[0], cameraOrientation[1]) - cameraOrientation[2]) << " " << glm::length(glm::cross(cameraOrientation[2], cameraOrientation[1]) - cameraOrientation[0]) << " " << glm::length(glm::cross(cameraOrientation[2], cameraOrientation[1]) - cameraOrientation[1]) << endl;
 
         //renderer->renderObjects(objs);
         //return;
 
-        lookAt(glm::vec3(0.5, 0, 0));
+        //lookAt(glm::vec3(0.5, 0, 0));
         //cameraMatrix *= translationMatrix(glm::vec3(0.1, 0, 0));
-        window.savePPM("output.ppm");
+        //window.savePPM("output.ppm");
 
         switch (renderType)
         {
@@ -168,8 +168,8 @@ class Application {
             break;
         }
 
-        window.saveBMP(string_format("%05d.bmp", frame));
-        frame++;
+       // window.saveBMP(string_format("%05d.bmp", frame));
+        //frame++;
 
         if (overlayEnabled) {
             auto lightPos = Renderer3d::getCanvasIntersectionPoint(light.position, cameraMatrix, f, windowSize);
@@ -237,7 +237,7 @@ class Application {
         SDL_Event event;
 
         auto ctx = overlay->resetContext();
-        overlay::setFont(ctx, "../../../assets/Roboto-Regular.ttf", 12);
+        overlay::setFont(ctx, "assets/Roboto-Regular.ttf", 12);
 
         while (true) {
             current_ticks = clock();

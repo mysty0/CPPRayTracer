@@ -18,7 +18,7 @@ struct UIContext {
 };
 
 namespace overlay {
-    void text(UIContext* ctx, std::string& text, glm::vec3 color) {
+    void text(UIContext* ctx, std::string text, glm::vec3 color) {
         auto surface = TTF_RenderText_Solid(ctx->font, text.c_str(), { (uint8_t)color.r, (uint8_t)color.g, (uint8_t)color.b, 255 });
         if (surface == nullptr) {
             std::cout << TTF_GetError() << std::endl;
