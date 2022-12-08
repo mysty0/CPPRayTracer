@@ -20,8 +20,8 @@ Ke 0.000000 0.000000 0.000000
 Ni 1.450000
 d 1.000000
 illum 2
-#map_Bump PaintedMetal004_1K-JPG\\PaintedMetal004_1K_NormalDX.jpg
-#map_Kd Metal027_1K-JPG\\Metal027_1K_Color.jpg
+map_Bump tabbed-metal_normal-ogl.ppm
+map_Kd tabbed-metal_albedo.ppm
 #map_Ns Metal027_1K-JPG\\Metal027_1K_Roughness.jpg
 #refl Metal027_1K-JPG\\Metal027_1K_Metalness.jpg
 
@@ -29,9 +29,11 @@ newmtl metal3.raw
 Ns 359.999993
 #c4c7c7
 Ka 1.000000 1.000000 1.000000
-Kd 0.047, 0.298, 0.486
+Kd 0.769, 0.78, 0.78
 Ks 0.500000 0.500000 0.500000
 Ke 0.000000 0.000000 0.000000
 Ni 1.000000
 d 1.000000
 illum 2
+map_Ns metal2.raw_Roughness.ppm
+map_Bump metal2.raw_Normal.ppm

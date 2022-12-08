@@ -42,10 +42,15 @@ uint32_t TextureMap::point(size_t x, size_t y) const {
 	return this->pixels[x + y * this->width];
 }
 
-uint32_t TextureMap::point(glm::ivec2 pos) const {
-	if (pos.x >= width || pos.y >= height) {
+uint32_t TextureMap::point(glm::vec2 pos) const {
+	if (pos.x >= 1 || pos.y >= 1) {
 		//std::cout << x << "," << y << " out of texture bounds" << std::endl;
 		return 0;
 	}
-	return this->pixels[pos.x + pos.y * this->width];
+	int ind = (pos.x) * this->width + ((pos.y) * this->height) * this->width;
+	if (ind > this->pixels.size()) {
+		return 0;
+	}
+
+	return this->pixels[ind];
 }

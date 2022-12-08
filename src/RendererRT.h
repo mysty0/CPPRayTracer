@@ -20,12 +20,15 @@ class RendererRT {
     const float& f;
     const glm::vec2& windowSize;
     const glm::ivec2& debugPoint;
+    const TextureMap envirenment;
 
 public:
     int threadNumber = 16;
 
-    RendererRT(DrawingWindow &window, const glm::mat4 &cameraMatrix, const float &f, const glm::vec2 &windowSize, const glm::ivec2& debugPoint)
-        : window(window), cameraMatrix(cameraMatrix), f(f), windowSize(windowSize), debugPoint(debugPoint) {}
+    RendererRT(DrawingWindow &window, const glm::mat4 &cameraMatrix, const float &f, const glm::vec2 &windowSize, const glm::ivec2& debugPoint, const TextureMap envirenment)
+        : window(window), cameraMatrix(cameraMatrix), f(f), windowSize(windowSize), debugPoint(debugPoint), envirenment(envirenment) {
+        cout << "env w: " << envirenment.width << " h: " << envirenment.height << endl;
+    }
 
     void renderObjects(vector<ModelTriangle>& triangles, Light& light) {
         std::vector<std::thread> threads(threadNumber);
@@ -39,12 +42,41 @@ public:
         }
     }
 
+    glm::vec2 textureCoord(RayTriangleIntersection& intr) {
+        auto* triangle = intr.intersectedTriangle;
+        return triangle->texturePoints[0] * (1 - intr.e1 - intr.e2) + intr.e1 * triangle->texturePoints[1] + intr.e2 * triangle->texturePoints[2];
+    }
+
     glm::vec3 mapColor(RayTriangleIntersection &intr) {
         auto tex = intr.intersectedTriangle->texture.lock();
         return tex->base.map_or([&](auto base) {
-            auto* triangle = intr.intersectedTriangle;
-            return decodeColor(base.point(triangle->texturePoints[0] * (1 - intr.e1 - intr.e2) + intr.e1 * triangle->texturePoints[1] + intr.e2 * triangle->texturePoints[2]));
+            auto coords = textureCoord(intr);
+            return decodeColor(base.point(coords.x * base.width, coords.y * base.height));
         }, tex->color);
+    }
+
+    glm::vec3 mapRoughness(RayTriangleIntersection& intr) {
+        auto tex = intr.intersectedTriangle->texture.lock();
+        return tex->roughness.map_or([&](auto base) {
+            auto coords = textureCoord(intr);
+            return decodeColor(base.point(coords.x * base.width, coords.y * base.height));
+        }, glm::vec3(0));
+    }
+
+    glm::vec3 mapBump(RayTriangleIntersection& intr) {
+        auto tex = intr.intersectedTriangle->texture.lock();
+        return tex->bump.map_or([&](auto base) {
+            auto coords = textureCoord(intr);
+            return decodeColor(base.point(coords.x * base.width, coords.y * base.height));
+        }, glm::vec3(0));
+    }
+
+    glm::vec3 reflect(glm::vec3 lightDir, glm::vec3 normal) {
+        return glm::normalize(lightDir - 2.f * normal * (glm::dot(lightDir, normal)));
+    }
+
+    glm::vec4 reflect(glm::vec4 lightDir, glm::vec4 normal) {
+        return glm::normalize(lightDir - 2.f * normal * (glm::dot(lightDir, normal)));
     }
 
     void renderObjectsLine(vector<ModelTriangle> &triangles, Light& light, int start, int end) {
@@ -59,14 +91,37 @@ public:
                     if(lightIntr) {
                         window.setPixelColour(x, y, encodeColor(mapColor(intr) * glm::vec3(light.ambientMin)));      
                     } else { 
+                        auto tex = intr.intersectedTriangle->texture.lock();
+
                         auto intensity = glm::pi<float>()*glm::distance2(intr.intersectionPoint, light.position)*light.inclineFactor;
                         auto lightDir = light.position-intr.intersectionPoint;
                         auto normal = intr.intersectedTriangle->vertexNormals[1] * intr.e1 + intr.intersectedTriangle->vertexNormals[2] * intr.e2 + intr.intersectedTriangle->vertexNormals[0] * (1 - intr.e1 - intr.e2);
-                        normal = glm::normalize(normal / glm::length(normal));
+                        auto bump = mapBump(intr) * 0.1;
+                        normal = glm::normalize(normal + glm::vec3(bump.x, bump.z, bump.y));
+
                         auto diffuse = glm::clamp(glm::dot(normal, lightDir), 0.f, 1.0f)*light.diffusionFactor;
-                        auto reflect = glm::normalize(lightDir - 2.f * normal * (glm::dot(lightDir, normal)));
-                        auto specular = (light.intensity / intensity) * glm::pow(glm::clamp(glm::dot(reflect, ray), 0.f, 1.0f), light.specularExp)*light.specularFactor;
-                        window.setPixelColour(x, y, encodeColor(mapColor(intr) * max((light.intensity / intensity) * diffuse, light.ambientMin) + specular));
+                        auto refl = reflect(lightDir, normal);
+                        auto specular = (light.intensity / intensity) * glm::pow(glm::clamp(glm::dot(refl, ray), 0.f, 1.0f), tex->specular == 0 ? light.specularExp : tex->specular)*light.specularFactor;
+
+                        auto color = mapColor(intr) * max((light.intensity / intensity) * diffuse, light.ambientMin) + specular;
+
+                        if (tex->roughness != tl::nullopt) {
+                            glm::vec3 nr = ray * glm::vec3(-1, -1, -1) * 2.f + glm::vec3(0.5, 0.5, 0);
+                            glm::vec3 r = glm::normalize(vec4To3(reflect(vec3To4(nr), glm::transpose(cameraMatrix) * vec3To4(normal))));
+                            //glm::vec3 r = ray * glm::vec3(1, -1, -1);
+                            float m = 2. * sqrt(
+                                pow(r.x, 2.) +
+                                pow(r.y, 2.) +
+                                pow(r.z + 1., 2.)
+                            );
+                            auto uv = (glm::vec2(r.x, r.y) / m + .5f);
+                            // cout << glm::to_string(uv) << " " << envirenment.point(uv) << " " << envirenment.height << endl;
+                            auto reflectionColor = decodeColor(envirenment.point(uv.x * envirenment.width, uv.y * envirenment.height));
+                            color = color + reflectionColor * glm::length(mapRoughness(intr) * 0.5);
+                        }
+
+                        window.setPixelColour(x, y, encodeColor(color));
+                        
 
                         if (debugPoint.x == x && debugPoint.y == y) {
                             renderer2d::drawDot(window, debugPoint, 6, glm::vec3(255));
@@ -79,7 +134,16 @@ public:
                         }
                     }
                 } else {
-                    window.setPixelColour(x, y, 0);
+                    glm::vec3 r = ray * glm::vec3(-1, -1, -1)*2.f + glm::vec3(0.5, 0.5, 0);
+                    float m = 2. * sqrt(
+                        pow(r.x, 2.) +
+                        pow(r.y, 2.) +
+                        pow(r.z + 1., 2.)
+                    );
+                    auto uv = (glm::vec2(r.x, r.y) / m + .5f);
+                    // cout << glm::to_string(uv) << " " << envirenment.point(uv) << " " << envirenment.height << endl;
+                    window.setPixelColour(x, y, envirenment.point(uv.x * envirenment.width, uv.y * envirenment.height));
+                    //window.setPixelColour(x, y, envirenment.point(((float)x)/window.width*envirenment.width, ((float)y) / window.height * envirenment.height));//(glm::vec2(x, y) / glm::vec2(window.width, window.height)));
                 }
             }
         }

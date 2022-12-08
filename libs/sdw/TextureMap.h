@@ -15,6 +15,6 @@ public:
 	TextureMap();
 	TextureMap(const std::string &filename);
 	uint32_t point(size_t x, size_t y) const;
-	uint32_t TextureMap::point(glm::ivec2 pos) const;
+	uint32_t TextureMap::point(glm::vec2 pos) const;
 	friend std::ostream &operator<<(std::ostream &os, const TextureMap &point);
 };
