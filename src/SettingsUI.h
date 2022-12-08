@@ -17,7 +17,7 @@ public:
 	FloatMenuItem(std::string name, float& value, float step = 0.1f) : name(name), value(value), changeStep(step) {};
 
 	std::string text() {
-		return string_format("%s: %.3f", name, value);
+		return string_format("%s: %.3f", name.c_str(), value);
 	}
 
 	void increase() {
@@ -37,7 +37,7 @@ public:
 	IntMenuItem(std::string name, int& value, int step = 1) : name(name), value(value), changeStep(step) {};
 
 	std::string text() {
-		return string_format("%s: %d", name, value);
+		return string_format("%s: %d", name.c_str(), value);
 	}
 
 	void increase() {
@@ -56,7 +56,7 @@ public:
 	BoolMenuItem(std::string name, bool& value) : name(name), value(value) {};
 
 	std::string text() {
-		return string_format("%s: %s", name, value ? "true" : "false");
+		return string_format("%s: %s", name.c_str(), value ? "true" : "false");
 	}
 
 	void increase() {
@@ -103,7 +103,8 @@ public:
 	void drawOverlay(UIContext* ctx) {
 		overlay::column(ctx, [&ctx, this]() {
 			for (int i = 0; i < items.size(); i++) {
-				overlay::text(ctx, items[i]->text(), i == position ? glm::vec3(0, 0, 255) : glm::vec3(255));
+				std::string text = items[i]->text();
+				overlay::text(ctx, text, i == position ? glm::vec3(0, 0, 255) : glm::vec3(255));
 			}
 		});
 	}

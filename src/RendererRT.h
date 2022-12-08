@@ -42,30 +42,38 @@ public:
         }
     }
 
-    glm::vec2 textureCoord(RayTriangleIntersection& intr) {
+    static glm::vec2 textureCoord(const RayTriangleIntersection& intr) {
         auto* triangle = intr.intersectedTriangle;
         return triangle->texturePoints[0] * (1 - intr.e1 - intr.e2) + intr.e1 * triangle->texturePoints[1] + intr.e2 * triangle->texturePoints[2];
     }
 
-    glm::vec3 mapColor(RayTriangleIntersection &intr) {
+    glm::vec3 mapColor(const RayTriangleIntersection &intr) {
         auto tex = intr.intersectedTriangle->texture.lock();
-        return tex->base.map_or([&](auto base) {
+        // return tex->base.map_or([&intr](TextureMap& base) {
+        //     auto coords = textureCoord(intr);
+        //     return decodeColor(base.point(coords.x * base.width, coords.y * base.height));
+        // }, tex->color);
+        if(tex->base.has_value()) {
             auto coords = textureCoord(intr);
+            auto base = *tex->base;
             return decodeColor(base.point(coords.x * base.width, coords.y * base.height));
-        }, tex->color);
+        }
+        return glm::vec3(0);
     }
 
     glm::vec3 mapRoughness(RayTriangleIntersection& intr) {
         auto tex = intr.intersectedTriangle->texture.lock();
-        return tex->roughness.map_or([&](auto base) {
+        if(tex->roughness.has_value()) {
             auto coords = textureCoord(intr);
+            auto base = *tex->roughness;
             return decodeColor(base.point(coords.x * base.width, coords.y * base.height));
-        }, glm::vec3(0));
+        }
+        return glm::vec3(0);
     }
 
     glm::vec3 mapBump(RayTriangleIntersection& intr) {
         auto tex = intr.intersectedTriangle->texture.lock();
-        return tex->bump.map_or([&](auto base) {
+        return tex->bump.map_or([&](TextureMap& base) {
             auto coords = textureCoord(intr);
             return decodeColor(base.point(coords.x * base.width, coords.y * base.height));
         }, glm::vec3(0));

@@ -84,7 +84,7 @@ namespace loader {
 
         char buf[4096];
         auto oldCwd = cwd(buf, sizeof(buf));
-        cd(path.substr(0, path.find_last_of("\\/")).c_str());
+        cd(path.substr(0, path.find_last_of("/")).c_str());
 
         while(inputStream.good() && !inputStream.eof()) {
             std::getline(inputStream, nextLine);
